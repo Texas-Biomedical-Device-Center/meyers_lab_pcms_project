@@ -1,0 +1,42 @@
+General GUI Interface Reqiurements:
+The UI shall have 3 sections using the vertical alignment configuration consisting of a top section, middle section, and bottom section.
+
+The top section (top third) of GUI Console:
+{
+The system shall have field labeled "Subject" that retrieves its value from an external CSV file and is displayed.
+The system shall have a dropdown labeled "Stage" populated with metadata from an external CSV file and is displayed at the top of the console.
+The system shall have a dropdown labeled "Booth #" populated with metadata from an external CSV file and is displayed at the top of the console.
+The system shall have a field labeled "VNS", which shall automatically pull its value from the CSV file and is displayed at the top of the console.
+The system shall have a field labeled "H-Amp", which shall pull its value from the CSV file and is displayed at the top of the console.
+The system shall have a field labeled "%", representing a percentile, with its value pulled from the external CSV file and is displayed at the top of the console.
+The external metadata source shall be an Excel CSV file named "H-Reflex_Metadata.csv", located in the app’s working directory. The structure of this CSV file is outlined below:
+
+Skeleton CSV File Structure of "H-Reflex_Metadata.csv" located in the same working directory:
+{
+Subject | Stage | Booth # | VNS | H-Amp (mV) | Percentile (%) | Mode              | Reward Given (Yes/No) |
+--------|-------|---------|-----|------------|----------------|-------------------|-----------------------|
+001     | 1     | 2       | 0   | 10         | 50             | Control           | No                    |
+002     | 2     | 3       | 1   | 30         | 10             | Up-conditioning   | Yes                   |
+003     | 3     | 1       | 1   | 25         | 15             | Down-conditioning | Yes                   |
+004     | 1     | 4       | 0   | 20         | 80             | Control           | No                    |
+005     | 2     | 2       | 1   | 35         | 70             | Up-conditioning   | Yes                   |
+}
+
+}
+
+The middle section (middle third) of GUI Console:
+{
+The system shall have a signal slot called "Trial EMG" on the left half of the console that receives, stores, and displays EMG Trial Data using matplotlib package with horizontal axis called "Time" and vertical axis called "EMG (mV)"; this plot has a time window of 150 ms and shows a stimulation action potential signal at the start of the trial, then the system should to plot and spike times of motor unit firings and identification of individual motor unit (MU) firings in the motor response labelled "M-Wave" as the peak of the first spike (M wave) and the subsequent as peak of the second spike time labelled "H-Wave" hoffman reflex motor response (H Wave) where the peaks are labelled with a point corresponding to the peak of the M Wave and H Wave in a single trial.
+The system shall have a signal slot called "Last 50 Trials" on the right hand of the console that receives, stores, and displays compiled EMG Trial Data as a scatter plot on a horizontal axis called "Trial #" and vertical axis called "EMG (mV)" using matplotlib package; Then the system should identify spike times of motor unit firings in the motor response (M wave) and subsequent hoffman reflex motor response (H Wave) represented as single data points in the scatter plot for each individual trial collapsed on a single vertical for a trial. This scatter plot should plot the identified M Wave and H Wave recorded for each individual trial (labelled on a single vertical line). In addition to this, this plot will also plot data points for when "VNS" stimulation is administered, as well as a "Success threshold" that is represented by a fitted line for when VNS is successfully administered.
+}
+
+The bottom section (bottom third) of GUI Console:
+{
+The system shall have a button that says "Start/Stop Recording" that will initiate the start of the app beginning with the "Filtered Live EMG" plot. 
+The system shall have a signal slot called "Filtered Live EMG" that receives, stores, and displays raw EMG data as continuous data using matplotlib package in the bottom of the console with the horizontal axis called "Time (last 5s)" and vertical axis called "EMG %", then the system should identify spike times of motor unit firings and of individual motor unit (MU) firings "M Wave" in the motor response (M wave) and subsequent hoffman reflex motor response "H Wave" that is the peak of the second spike (H Wave) where the peaks are labelled with a point corresponding to the peak of the M Wave and H Wave in a the recorded trial. This plot displayed Raw EMG data with an Initiation Threshold represented as two horizontal lines called "Initiation Threshold" and only initiates a trial that feed and initialize into the two plots called "Trial EMG" and "Last 50 Trials" IF AND ONLY IF the Raw EMG data range falls within the criterion values of the "Initiation Window" within a 2.5-2.7s window. 
+}
+
+
+
+
+
