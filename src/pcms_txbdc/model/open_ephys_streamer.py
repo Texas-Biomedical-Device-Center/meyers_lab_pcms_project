@@ -18,7 +18,7 @@ class OpenEphysStreamer (object):
         self.message_num = -1
         self.socket_waits_reply = False
         self.event_no = 0
-        self.app_name = 'TxBDC H-Reflex'
+        self.app_name = 'TxBDC PCMS'
         self.uuid = str(uuid.uuid4())
         self.last_heartbeat_time = 0
         self.last_reply_time = time.time()

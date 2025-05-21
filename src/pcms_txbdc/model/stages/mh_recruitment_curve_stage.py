@@ -245,7 +245,7 @@ class MhRecruitmentCurveStage (Stage):
         self._stimulation_amplitudes: np.ndarray = np.array([])
 
         #Make sure that the VNS stimulation parameters are set on the StimJim
-        ApplicationConfiguration.set_monophasic_stimulus_pulse_parameters_on_stimjim(0.0)
+        ApplicationConfiguration.set_monophasic_stimulus_pulse_parameters_on_stimjim(0, 0.0)
         
     #endregion
 
@@ -387,7 +387,7 @@ class MhRecruitmentCurveStage (Stage):
             self._stimulation_amplitudes = self._stimulation_amplitudes[1:]
 
             #Set the stimulation parameters on the stimjim for the upcoming trial
-            ApplicationConfiguration.set_monophasic_stimulus_pulse_parameters_on_stimjim(self._current_stimulation_amplitude_ma)
+            ApplicationConfiguration.set_monophasic_stimulus_pulse_parameters_on_stimjim(0, self._current_stimulation_amplitude_ma)
 
             #Set the trial state
             self._current_trial_state = MhRecruitmentCurveStage.TRIAL_STATE_WAIT_FOR_INITIATION
