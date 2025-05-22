@@ -5,8 +5,8 @@ from platformdirs import user_data_dir
 import os
 import numpy as np
 
-from hreflex_txbdc.model.application_configuration import ApplicationConfiguration
-from hreflex_txbdc.model.emg_characterization_data import EmgCharacterizationData, EmgCharacterizationHeader, EmgCharacterizationTrial
+from pcms_txbdc.model.application_configuration import ApplicationConfiguration
+from pcms_txbdc.model.emg_characterization_data import EmgCharacterizationData, EmgCharacterizationHeader, EmgCharacterizationTrial
 
 # %% Define the subject ID and then find all EMG characterization stage data files
 

@@ -1,5 +1,17 @@
-# PCMS-behavior-app
-A behavior application written in Python for conducting PCMS experiments
+Metadata-Version: 2.4
+Name: hreflex_txbdc
+Version: 0.0.1
+Summary: TxBDC H-Reflex Application
+Author: David Pruitt
+Author-email: dtp110020@utdallas.edu
+Classifier: Private :: Do Not Upload
+Requires-Dist: numpy>=1.24.4
+Requires-Dist: pandas>=2.0.3
+Requires-Dist: pyside6>=6.7.3
+Requires-Dist: pyqtgraph>=0.13.7
+
+# h-reflex-behavior-app
+A behavior application written in Python for conducting H-Reflex experiments
 
 ## Installation (for developers)
 To get set up for working on this repository, you should do the following:

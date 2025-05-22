@@ -9,9 +9,9 @@ The system shall have a dropdown labeled "Booth #" populated with metadata from 
 The system shall have a field labeled "VNS", which shall automatically pull its value from the CSV file and is displayed at the top of the console.
 The system shall have a field labeled "H-Amp", which shall pull its value from the CSV file and is displayed at the top of the console.
 The system shall have a field labeled "%", representing a percentile, with its value pulled from the external CSV file and is displayed at the top of the console.
-The external metadata source shall be an Excel CSV file named "H-Reflex_Metadata.csv", located in the app’s working directory. The structure of this CSV file is outlined below:
+The external metadata source shall be an Excel CSV file named "PCMS_Metadata.csv", located in the app’s working directory. The structure of this CSV file is outlined below:
 
-Skeleton CSV File Structure of "H-Reflex_Metadata.csv" located in the same working directory:
+Skeleton CSV File Structure of "PCMS_Metadata.csv" located in the same working directory:
 {
 Subject | Stage | Booth # | VNS | H-Amp (mV) | Percentile (%) | Mode              | Reward Given (Yes/No) |
 --------|-------|---------|-----|------------|----------------|-------------------|-----------------------|
