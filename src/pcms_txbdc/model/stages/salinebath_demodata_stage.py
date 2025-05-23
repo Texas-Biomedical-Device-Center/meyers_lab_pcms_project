@@ -73,14 +73,6 @@ class SalineBathDemoDataStage (Stage):
         if (not os.path.exists(file_path)):
             os.makedirs(file_path)
         
-        #Check to see if there is an existing hrs1 file for this subject.
-        files_list: list[str] = os.listdir(file_path)
-        for f in files_list:
-            if (f.endswith("hrs1")):
-                #If we find an existing hrs1 file for this subject, then it means this subject has already completed
-                #this stage. Let's return False with an informative message to the user.
-                return (False, "This subject has already completed this stage. EMG Characterization data exists for this subject. This stage cannot proceed. If this is an issue, please talk to your PI.")
-
         #If we reach this point in the code, then no pre-existing hrs1 file exists for this subject, so we may proceed.
 
         #Open a file for saving data
@@ -137,12 +129,6 @@ class SalineBathDemoDataStage (Stage):
                 #Save the trial to the data file
                 self._save_trial(bin_grand_mean)
 
-                #Update the session plot
-                self._update_session_plot()
-
-                #Update the trial plot
-                self._update_trial_plot(bin_grand_mean)
-
                 #Let's create a message object
                 message: SessionMessage = SessionMessage(f"Trial {len(self._trial_means)} initiated")
                 self.signals.new_message.emit(message)
@@ -162,21 +148,21 @@ class SalineBathDemoDataStage (Stage):
             #Close the data file for this session
             self._fid.close()
 
-    def get_trial_plot_options (self) -> list[str]:
-        return ["Most recent trial"]
+    # def get_trial_plot_options (self) -> list[str]:
+    #     return ["Most recent trial"]
     
-    def get_session_plot_options (self) -> list[str]:
-        return ["Session history"]
+    # def get_session_plot_options (self) -> list[str]:
+    #     return ["Session history"]
 
-    def update_trial_plot (self) -> None:
-        #This stage will not support updating the plots from an external call.
-        pass
+    # def update_trial_plot (self) -> None:
+    #     #This stage will not support updating the plots from an external call.
+    #     pass
 
-    def update_session_plot (self) -> None:
-        #This stage will not support updating the plots from an external call.
-        pass
+    # def update_session_plot (self) -> None:
+    #     #This stage will not support updating the plots from an external call.
+    #     pass
 
-    #endregion
+    # #endregion
 
     #region Private methods
 
@@ -211,44 +197,6 @@ class SalineBathDemoDataStage (Stage):
 
     def _round_special (self, x: int, base: int = 50) -> int:
         return base * int(round(float(x) / float(base)))
-
-    def _update_session_plot (self) -> None:
-
-        #Clear the plot
-        self._session_widget.clear()
-
-        #Plot the trial means
-        self._session_widget.plot(range(0, len(self._trial_means)), self._trial_means, pen = None, symbol = 'o', symbolBrush=('b'), symbolSize=12)
-
-        pass
-
-    def _update_trial_plot (self, bin_grand_mean: float) -> None:
-        #Clear the plot
-        self._trial_widget.clear()
-
-        #Plot the "raw" (absolute-valued) EMG data for this trial
-        pen = pg.mkPen(color=(0, 0, 0))
-        self._trial_widget.plot(range(0, len(self._monitored_signal)), self._monitored_signal, pen = pen)
-
-        #Plot the binned data
-        pen = pg.mkPen(color=(255, 0, 0), width = 2.0)
-        xvals = list(range(0, len(self._bins)))
-        for i in range(0, len(xvals)):
-            xvals[i] *= SalineBathDemoDataStage.BIN_DURATION_SAMPLE_COUNT
-        self._trial_widget.plot(xvals, self._bins, pen = pen)
-
-        # Get the ViewBox object
-        view_box = self._trial_widget.getPlotItem().getViewBox()
-
-        # Get the Y-axis limits
-        y_min, y_max = view_box.viewRange()[1]
-
-        #Plot the grand mean
-        text_item = pg.TextItem(f"Mean = {bin_grand_mean:.2f}", anchor = (0, 0), color = (0, 0, 0))
-        self._trial_widget.addItem(text_item)
-        text_item.setPos(0, y_max)
-
-        pass
 
     def _save_file_header (self) -> None:
         if (self._fid is not None):
