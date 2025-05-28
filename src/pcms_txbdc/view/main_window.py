@@ -849,69 +849,45 @@ class MainWindow(QMainWindow):
             self._most_recent_trial_plot_selection_box.setEnabled(False)
             self._most_recent_trial_plot_selection_box.setStyleSheet("QComboBox {color: #808080; background-color: #F0F0F0;}")
     
-    # def _on_pause_button_clicked (self) -> None:
-    #     #Set the "paused" flag
-    #     self._is_session_paused = not self._is_session_paused
+    def _on_pause_button_clicked (self) -> None:
+        #Set the "paused" flag
+        self._is_session_paused = not self._is_session_paused
 
-    #     #Check if the session is now paused
-    #     if (self._is_session_paused):
-    #         #Change the pause button text to "resume"
-    #         self._pause_button.setText("Resume")
+        #Check if the session is now paused
+        if (self._is_session_paused):
+            #Change the pause button text to "resume"
+            self._pause_button.setText("Resume")
 
-    #         #The start/stop button will remain enabled, 
-    #         #so the user can still stop the session if they want.
-    #         #But let's make sure the feed button is disabled
-    #         self._feed_button.setEnabled(False)
-    #     else:
-    #         #Change the pause button text to "pause"
-    #         self._pause_button.setText("Pause")
+            #The start/stop button will remain enabled, 
+            #so the user can still stop the session if they want.
+            #But let's make sure the feed button is disabled
+            self._feed_button.setEnabled(False)
+        else:
+            #Change the pause button text to "pause"
+            self._pause_button.setText("Pause")
 
-    #         #Enable the feed button
-    #         self._feed_button.setEnabled(True)
+            #Enable the feed button
+            self._feed_button.setEnabled(True)
 
-    # def _on_message_received_from_stage (self, message: SessionMessage) -> None:
-    #     self._session_messages.append(message)
-    #     self._update_session_messages()
-
-    def create_text_and_box(self, name, layout, text_width=None):
-        """
-        Creates the text and textbox.
-
-        Args:
-            name (int): The name of the text.
-            layout (QGridLayout): The grid layout to be added.
-            text_width (int): The width of text box
-        """
-        # Label
-        label = QLabel(name)
-        label.setFont(self._bold_font)
-        layout.addWidget(label)
-
-        # Text entry
-        text_entry = QLineEdit("")
-        text_entry.setFont(self._regular_font)
-        text_entry.setStyleSheet("QLineEdit {color: #000000; background-color: #FFFFFF;}")
-        if text_width is not None:
-            text_entry.setFixedWidth(text_width)
-        text_entry.returnPressed.connect(self._send_callback)
-        layout.addWidget(text_entry)
-        self._msg_text_list.append(text_entry) #store the text entry for later access.
-
-    def _on_user_command_entered (self) -> None:
-        #if (self._is_session_running) and (not (self._is_session_paused)):
-        #Get the text that the user entered
-        user_input: str = self._command_entry.text()
-
-        #Clear the text in the UI
-        self._command_entry.setText("")
-
-        # Add the user's command to the session messages with special formatting
-        message: SessionMessage = SessionMessage(f">> User Command: {user_input}")
+    def _on_message_received_from_stage (self, message: SessionMessage) -> None:
         self._session_messages.append(message)
         self._update_session_messages()
 
-        #Pass the text to the stage
-        #self._selected_stage.input(user_input)
+    def _on_user_command_entered (self) -> None:
+        if (self._is_session_running) and (not (self._is_session_paused)):
+            #Get the text that the user entered
+            user_input: str = self._command_entry.text()
+
+            #Clear the text in the UI
+            self._command_entry.setText("")
+
+            # Add the user's command to the session messages with special formatting
+            message: SessionMessage = SessionMessage(f">> User Command: {user_input}")
+            self._session_messages.append(message)
+            self._update_session_messages()
+
+            #Pass the text to the stage
+            self._selected_stage.input(user_input)
 
     # def _on_session_history_plot_selection_index_changed (self) -> None:
     #     if (self._is_session_running):
@@ -966,19 +942,4 @@ class MainWindow(QMainWindow):
          """
         self._live_emg_line_object.setData(self._live_emg_x_data, self._emg_signal_data)
         
-    def _on_send_button_clicked(self) -> None:
-        """
-        Handler for send button clicks.
-        """
-        # Get text from subject entry
-        message = self._msg_text.text()
-        
-        if message.strip():  # Only send if there's actual text
-            # Add to session messages
-            message = SessionMessage(f"Message to stim jim: {message}")
-            self._session_messages.append(message)
-            self._update_session_messages()
-            
-            # Optionally clear the text box after sending
-            self._msg_text.clear()
     #endregion
