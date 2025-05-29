@@ -844,10 +844,10 @@ class MainWindow(QMainWindow):
             self._stage_selection_box.setStyleSheet("QComboBox {color: #000000; background-color: #FFFFFF;}")
 
             #Disable the plot selection combo boxes
-            self._session_history_plot_selection_box.setEnabled(False)
-            self._session_history_plot_selection_box.setStyleSheet("QComboBox {color: #808080; background-color: #F0F0F0;}")
-            self._most_recent_trial_plot_selection_box.setEnabled(False)
-            self._most_recent_trial_plot_selection_box.setStyleSheet("QComboBox {color: #808080; background-color: #F0F0F0;}")
+            # self._session_history_plot_selection_box.setEnabled(False)
+            # self._session_history_plot_selection_box.setStyleSheet("QComboBox {color: #808080; background-color: #F0F0F0;}")
+            # self._most_recent_trial_plot_selection_box.setEnabled(False)
+            # self._most_recent_trial_plot_selection_box.setStyleSheet("QComboBox {color: #808080; background-color: #F0F0F0;}")
     
     def _on_pause_button_clicked (self) -> None:
         #Set the "paused" flag
