@@ -16,10 +16,10 @@ from ..stimjim import StimJim
 class SalineBathDemoDataStage(Stage):
     #region Constants
 
-    # This defines the gap between StimJim1 and StimJim2 activation
+    # This defines the gap (ms) between StimJim1 and StimJim2 activation
     STIM_GAP_MILLISECONDS: float = 100.0
     
-    # This defines the wait time after stimulations were induced
+    # This defines the wait time (sec) after stimulations were induced
     STIM_INTERVAL_SECONDS: float = 5.0
 
     # This defines the number of stimulations to induce. For demodata collection, any small number would work.
@@ -109,12 +109,20 @@ class SalineBathDemoDataStage(Stage):
             # Set the timestamp to the current time.
             self._stim_phase_timestamp = current_timestamp
 
-            # Display a message: "Stim iteration #n - StimJim 1".
-            message: SessionMessage = SessionMessage(f"Stim iteration #{self._stim_index + 1} - StimJim 1")
-            self.signals.new_message.emit(message)
+            # Check so that "T0" will only be sent if stimjim is actually connected
+            if (self._check_stimjim_availability(0)):
+                # Display a message: "Stim iteration #n - StimJim 1".
+                message: SessionMessage = SessionMessage(f"Stim iteration #{self._stim_index + 1} - StimJim 1")
+                self.signals.new_message.emit(message)
 
-            # Send the activation command to stimjim[0], which is StimJim 1 "Brain".
-            ApplicationConfiguration.stimjim[0].send_command("T0")
+                # Send the activation command to stimjim[0], which is StimJim 1 "Brain".
+                ApplicationConfiguration.stimjim[0].send_command("T0")
+
+            # If no stimjim connected, justdisplay a message
+            else:
+                # Display a message: "StimJim not found. Virtual stimulation: Stim iteration #n - StimJim 1".
+                message: SessionMessage = SessionMessage(f"StimJim not found. Virtual stimulation: Stim iteration #{self._stim_index + 1} - StimJim 1")
+                self.signals.new_message.emit(message)
 
             # Set phase to next.
             self._stim_phase = "WAIT_GAP"
@@ -132,12 +140,19 @@ class SalineBathDemoDataStage(Stage):
             # Set the timestamp to the current time.
             self._stim_phase_timestamp = current_timestamp
 
-            # Display a message: "Stim iteration #n - StimJim 2"
-            message: SessionMessage = SessionMessage(f"Stim iteration #{self._stim_index + 1} - StimJim 2")
-            self.signals.new_message.emit(message)
+            # Check so that "T0" will only be sent if stimjim is actually connected
+            if (self._check_stimjim_availability(1)):
+                # Display a message: "Stim iteration #n - StimJim 2"
+                message: SessionMessage = SessionMessage(f"Stim iteration #{self._stim_index + 1} - StimJim 2")
+                self.signals.new_message.emit(message)
 
-            # Send the activation command to stimjim[1], which is StimJim 2 "Nerve".
-            ApplicationConfiguration.stimjim[1].send_command("T0")
+                # Send the activation command to stimjim[1], which is StimJim 2 "Nerve".
+                ApplicationConfiguration.stimjim[1].send_command("T0")
+
+            else:
+                # Display a message: "StimJim not found. Virtual stimulation: Stim iteration #n - StimJim 2"
+                message: SessionMessage = SessionMessage(f"StimJim not found. Virtual stimulation: Stim iteration #{self._stim_index + 1} - StimJim 2")
+                self.signals.new_message.emit(message)
 
             # Set phase to next
             self._stim_phase = "WAIT_LONG"
@@ -190,5 +205,12 @@ class SalineBathDemoDataStage(Stage):
             FileIO_Helpers.write(self._fid, "int32", self.stage_type)
 
             pass
+
+    def _check_stimjim_availability(self, index: int) -> bool:
+        stimjim_list = ApplicationConfiguration.stimjim
+        if (index < len(stimjim_list) and stimjim_list[index] is not None):
+            return True
+        else:
+            return False
 
     #endregion
