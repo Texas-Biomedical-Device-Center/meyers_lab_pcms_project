@@ -27,6 +27,21 @@ class SalineBathDemoDataStage(Stage):
 
     #endregion
 
+    #region Methods
+
+    def save (self, fid: BinaryIO) -> None:
+        #Save a trial block indicator
+        FileIO_Helpers.write(fid, "int32", int(1))
+
+        #Save the timestamp for this trial
+        FileIO_Helpers.write_datetime(fid, self._stim_phase_timestamp)
+
+        #Save the trial data
+        for i in range(0, len(self.demo_data)):
+            FileIO_Helpers.write(fid, "float64", self.demo_data[i])
+
+    #endregion
+
     #region Constructor
 
     def __init__(self):
@@ -39,6 +54,9 @@ class SalineBathDemoDataStage(Stage):
 
         #Create a private variable that will be used to store a save-file handle
         self._fid: BinaryIO = None
+
+        #Create a numpy array to hold the demo data
+        self.demo_data: np.ndarray = np.zeros(1)
         
         # Create a variable to track how many stims were made
         self._stim_index: int = 0
@@ -58,6 +76,9 @@ class SalineBathDemoDataStage(Stage):
     def initialize(self, subject_id: str) -> tuple[bool, str]:
         # Set the subject id
         self._subject_id = subject_id
+
+        #Create a numpy array to hold the demo data
+        self.demo_data: np.ndarray = np.zeros(1)
 
         # Create a variable to track how many stims were made
         self._stim_index = 0
@@ -124,11 +145,18 @@ class SalineBathDemoDataStage(Stage):
                 message: SessionMessage = SessionMessage(f"StimJim not found. Virtual stimulation: Stim iteration #{self._stim_index + 1} - StimJim 1")
                 self.signals.new_message.emit(message)
 
+            # Copy data into the demo data object
+            self.demo_data = np.concatenate([self.demo_data, data])
+
             # Set phase to next.
             self._stim_phase = "WAIT_GAP"
 
         # Second phase, simply a wait time between StimJim 1 and 2.
         elif self._stim_phase == "WAIT_GAP":
+
+            # Copy data into the demo data object
+            self.demo_data = np.concatenate([self.demo_data, data])
+            
             # Check if STIM_GAP_MILLISECONDS have elapsed since the timestamp of previous phase.
             if current_timestamp - self._stim_phase_timestamp >= self.STIM_GAP_MILLISECONDS / 1000.0:
                 # Set phase to next.
@@ -154,22 +182,24 @@ class SalineBathDemoDataStage(Stage):
                 message: SessionMessage = SessionMessage(f"StimJim not found. Virtual stimulation: Stim iteration #{self._stim_index + 1} - StimJim 2")
                 self.signals.new_message.emit(message)
 
+            # Copy data into the demo data object
+            self.demo_data = np.concatenate([self.demo_data, data])
+
             # Set phase to next
             self._stim_phase = "WAIT_LONG"
 
-            # Save the data after both StimJims have been activated
-            if self._fid:
-                FileIO_Helpers.write(self._fid, "int32", len(data))
-                FileIO_Helpers.write_ndarray(self._fid, data)
-
         # Last phase, simply a wait time between the stimulation iterations. Typically 3-5 seconds.
         elif self._stim_phase == "WAIT_LONG":
+            
             # Check if STIM_INTERVAL_SECONDS have elapsed since the timestamp of previous phase.
             if current_timestamp - self._stim_phase_timestamp >= self.STIM_INTERVAL_SECONDS:
                 # Increase stimulation iteration count by 1.
                 self._stim_index += 1
                 # Reset the phase to STIM1.
                 self._stim_phase = "STIM1"
+
+                # Save the data for the two stimulations
+                self.save(self._fid)
 
                 # Display a message if all stimulation iterations are complete.
                 if self._stim_index >= self.STIM_INSTANCE_COUNT:

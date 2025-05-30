@@ -796,8 +796,8 @@ class MainWindow(QMainWindow):
             # self._most_recent_trial_plot_selection_box.setStyleSheet("QComboBox {color: #000000; background-color: #FFFFFF;}")
 
             #Enable the pause and feed buttons
-            # self._pause_button.setEnabled(True)
-            # self._feed_button.setEnabled(True)
+            self._pause_button.setEnabled(True)
+            self._feed_button.setEnabled(True)
         else:
             #Disconnect from the signals of the selected stage
             self._selected_stage.signals.new_message.disconnect(self._on_message_received_from_stage)
@@ -906,7 +906,7 @@ class MainWindow(QMainWindow):
     def _update_session_messages (self) -> None:
         self._session_message_box.appendHtml(self._session_messages[-1].formatted_message_text)
 
-    #     pass
+        pass
 
     def _clear_session_messages (self) -> None:
         #Clear the session messages
