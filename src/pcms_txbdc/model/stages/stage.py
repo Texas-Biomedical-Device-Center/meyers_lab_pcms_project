@@ -8,6 +8,9 @@ class StageSignals (QObject):
 
     new_message = Signal(object)
 
+    # Session running flag to control Start/Stop
+    session_complete = Signal()
+
     #endregion
 
 class Stage (object):

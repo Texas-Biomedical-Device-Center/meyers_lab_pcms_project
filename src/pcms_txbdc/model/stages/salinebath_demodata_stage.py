@@ -34,7 +34,7 @@ class SalineBathDemoDataStage(Stage):
         FileIO_Helpers.write(fid, "int32", int(1))
 
         #Save the timestamp for this trial
-        FileIO_Helpers.write_datetime(fid, self._stim_phase_timestamp)
+        FileIO_Helpers.write_datetime(fid, self.current_datetime)
 
         #Save the trial data
         for i in range(0, len(self.demo_data)):
@@ -63,7 +63,7 @@ class SalineBathDemoDataStage(Stage):
         
         # Set the phase of the stage
         self._stim_phase: str = "STIM1"
-        self._stim_phase_timestamp: float = None
+        self.current: float = None
 
         # Set up StimJim parameters
         ApplicationConfiguration.set_biphasic_stimulus_pulse_parameters_on_stimjim(0, Stage.STIM1_AMPLITUDE)
@@ -90,7 +90,7 @@ class SalineBathDemoDataStage(Stage):
         self._stim_phase_timestamp = None
 
         #Get the current datetime
-        current_datetime: datetime = datetime.now()
+        self.current_datetime: datetime = datetime.now()
 
         #Define the path where we will save data
         app_data_path: str = user_data_dir(ApplicationConfiguration.appname, ApplicationConfiguration.appauthor)
@@ -101,7 +101,7 @@ class SalineBathDemoDataStage(Stage):
             os.makedirs(file_path)
 
         #Define a file name for the file to which we will save data
-        file_timestamp: str = current_datetime.strftime("%Y%m%dT%H%M%S")
+        file_timestamp: str = self.current_datetime.strftime("%Y%m%dT%H%M%S")
         file_name: str = f"{self._subject_id}_{file_timestamp}.hrs1"
 
         #Open a file for saving data for this stage
@@ -204,6 +204,11 @@ class SalineBathDemoDataStage(Stage):
                 # Display a message if all stimulation iterations are complete.
                 if self._stim_index >= self.STIM_INSTANCE_COUNT:
                     self.signals.new_message.emit(SessionMessage("All stimulations completed."))
+
+                    # Emit signal to the main window to indicate session completion
+                    self.signals.session_complete.emit()
+        
+        return
 
     def finalize (self) -> None:        
         if (self._fid is not None):

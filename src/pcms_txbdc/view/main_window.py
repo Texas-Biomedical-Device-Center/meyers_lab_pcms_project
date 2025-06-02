@@ -750,6 +750,7 @@ class MainWindow(QMainWindow):
 
             #Subscribe to signals from the selected stage
             self._selected_stage.signals.new_message.connect(self._on_message_received_from_stage)
+            self._selected_stage.signals.session_complete.connect(self._on_stage_session_complete)
 
             #Initialize the selected stage
             init_result: tuple[bool, str] = self._selected_stage.initialize(self._subject_name)
@@ -758,6 +759,7 @@ class MainWindow(QMainWindow):
             if (not init_result[0]):
                 #Disconnect from the signals of the selected stage
                 self._selected_stage.signals.new_message.disconnect(self._on_message_received_from_stage)
+                self._selected_stage.signals.session_complete.disconnect(self._on_stage_session_complete)
 
                 #If not, then display an error dialog box to the user
                 error_message: str = init_result[1]
@@ -801,6 +803,7 @@ class MainWindow(QMainWindow):
         else:
             #Disconnect from the signals of the selected stage
             self._selected_stage.signals.new_message.disconnect(self._on_message_received_from_stage)
+            self._selected_stage.signals.session_complete.disconnect(self._on_stage_session_complete)
 
             #Set the "session running" flag to False
             self._is_session_running = False
@@ -872,6 +875,11 @@ class MainWindow(QMainWindow):
     def _on_message_received_from_stage (self, message: SessionMessage) -> None:
         self._session_messages.append(message)
         self._update_session_messages()
+
+    def _on_stage_session_complete (self) -> None:
+        # Called when session_complete signal is emit
+        if (self._is_session_running):
+            self._on_start_stop_button_clicked()
 
     def _on_user_command_entered (self) -> None:
         if (self._is_session_running) and (not (self._is_session_paused)):
