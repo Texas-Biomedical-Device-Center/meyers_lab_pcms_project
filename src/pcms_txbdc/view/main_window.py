@@ -320,20 +320,20 @@ class MainWindow(QMainWindow):
         self._brain_stim_up_button = QPushButton("▲")
         self._brain_stim_up_button.setFixedSize(30, 30)
         self._brain_stim_up_button.setEnabled(True)
-        self._brain_stim_up_button.clicked.connect(self._on_brain_stim_up_button_clicked)
+        self._brain_stim_up_button.clicked.connect(self._on_stim_amplitude_up_down_button_clicked)
         self._brain_stim_down_button = QPushButton("▼")
         self._brain_stim_down_button.setFixedSize(30, 30)
         self._brain_stim_down_button.setEnabled(True)
-        self._brain_stim_down_button.clicked.connect(self._on_brain_stim_down_button_clicked)
+        self._brain_stim_down_button.clicked.connect(self._on_stim_amplitude_up_down_button_clicked)
         
         self._nerve_stim_up_button = QPushButton("▲")
         self._nerve_stim_up_button.setFixedSize(30, 30)
         self._nerve_stim_up_button.setEnabled(True)
-        self._nerve_stim_up_button.clicked.connect(self._on_nerve_stim_up_button_clicked)
+        self._nerve_stim_up_button.clicked.connect(self._on_stim_amplitude_up_down_button_clicked)
         self._nerve_stim_down_button = QPushButton("▼")
         self._nerve_stim_down_button.setFixedSize(30, 30)
         self._nerve_stim_down_button.setEnabled(True)
-        self._nerve_stim_down_button.clicked.connect(self._on_nerve_stim_down_button_clicked)
+        self._nerve_stim_down_button.clicked.connect(self._on_stim_amplitude_up_down_button_clicked)
 
         # Create default values of stimulation amplitudes
         Stage.STIM1_AMPLITUDE = 5.0    # µA
@@ -674,25 +674,29 @@ class MainWindow(QMainWindow):
             self._session_messages.append(message)
             self._update_session_messages()
 
-    def _on_brain_stim_up_button_clicked (self) -> None:
-        # Increase value by 0.1
-        Stage.STIM1_AMPLITUDE += self._stim_step_size
-        self._brain_stim_amplitude_textbox.setText(f"{Stage.STIM1_AMPLITUDE:.1f}")
+    def _on_stim_amplitude_up_down_button_clicked (self) -> None:
+        sender = self.sender()
 
-    def _on_brain_stim_down_button_clicked (self) -> None:
-        # Decrease value by 0.1
-        Stage.STIM1_AMPLITUDE = max(0.0, Stage.STIM1_AMPLITUDE - self._stim_step_size)
-        self._brain_stim_amplitude_textbox.setText(f"{Stage.STIM1_AMPLITUDE:.1f}")
-
-    def _on_nerve_stim_up_button_clicked (self) -> None:
-        # Increase value by 0.1
-        Stage.STIM2_AMPLITUDE += self._stim_step_size
-        self._nerve_stim_amplitude_textbox.setText(f"{Stage.STIM2_AMPLITUDE:.1f}")
-
-    def _on_nerve_stim_down_button_clicked (self) -> None:
-        # Increase value by 0.1
-        Stage.STIM2_AMPLITUDE = max(0.0, Stage.STIM2_AMPLITUDE - self._stim_step_size)
-        self._nerve_stim_amplitude_textbox.setText(f"{Stage.STIM2_AMPLITUDE:.1f}")
+        # Change value based on button clicked
+        if sender == self._brain_stim_up_button:
+            # Increase brain stim amplitude by 0.1
+            Stage.STIM1_AMPLITUDE = min(Stage.STIM1_AMPLITUDE + self._stim_step_size, 6.0)
+            self._brain_stim_amplitude_textbox.setText(f"{Stage.STIM1_AMPLITUDE:.1f}")
+        elif sender == self._brain_stim_down_button:
+            # Decrease brain stim amplitude by 0.1
+            Stage.STIM1_AMPLITUDE = max(0.0, Stage.STIM1_AMPLITUDE - self._stim_step_size)
+            self._brain_stim_amplitude_textbox.setText(f"{Stage.STIM1_AMPLITUDE:.1f}")
+        elif sender == self._nerve_stim_up_button:
+            # Increase value by 0.1
+            Stage.STIM2_AMPLITUDE = min(Stage.STIM2_AMPLITUDE + self._stim_step_size, 6.0)
+            self._nerve_stim_amplitude_textbox.setText(f"{Stage.STIM2_AMPLITUDE:.1f}")
+        elif sender == self._nerve_stim_down_button:
+            # Increase value by 0.1
+            Stage.STIM2_AMPLITUDE = max(0.0, Stage.STIM2_AMPLITUDE - self._stim_step_size)
+            self._nerve_stim_amplitude_textbox.setText(f"{Stage.STIM2_AMPLITUDE:.1f}")
+        else:
+            # Unknown sender
+            return
 
     def _on_stim_amplitude_changed(self) -> None:
         # Error handler for when non-numeric is imputted in textbox.
@@ -733,14 +737,23 @@ class MainWindow(QMainWindow):
             }
         ]
 
-        # Reject negative values according to the above default values
         for stim in stim_info:
+            # Reject negative values according to the above default values
             if stim["value"] < 0:
                 stim["set_func"](stim["default"])
                 stim["textbox"].setText(f"{stim['default']:.1f}")
-                self._session_messages.append(
-                    SessionMessage(f"Negative {stim['label']} stim input! Reset to {stim['default']:.1f} mA.")
-                )
+
+                message = SessionMessage(f"Negative {stim['label']} stim input! Reset to {stim['default']:.1f} mA.")
+                self._session_messages.append(message)
+                self._update_session_messages()
+
+            # Reject values higher than 6.0 mA
+            elif stim["value"] > 6.0:
+                stim["set_func"](stim["default"])
+                stim["textbox"].setText(f"{stim['default']:.1f}")
+
+                message = SessionMessage(f"{stim['label']} stim input above limit! Reset to {stim['default']:.1f} mA.")
+                self._session_messages.append(message)
                 self._update_session_messages()
 
     def _on_start_stop_button_clicked (self) -> None:
