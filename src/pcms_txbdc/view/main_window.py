@@ -29,6 +29,7 @@ import time
 
 from typing import Tuple
 
+from ..model.open_ephys_streamer import OpenEphysStreamer
 from ..model.background_worker import BackgroundWorker
 from ..model.stages.stage import Stage
 from ..model.stages.salinebath_demodata_stage import SalineBathDemoDataStage
@@ -54,8 +55,8 @@ class MainWindow(QMainWindow):
         self._msg_text_list = []  
         
         # Initialize a variable to hold EMG signal data for plotting
-        self._emg_signal_data = np.zeros(5000)
-        self._emg_signal_data_max_length = 5000
+        self._emg_signal_data_max_length = 50000
+        self._emg_signal_data = np.zeros(self._emg_signal_data_max_length)
 
         # Initialize a flag to track whether a session is currently running
         self._is_session_running: bool = False
@@ -92,9 +93,7 @@ class MainWindow(QMainWindow):
         # Main layout container
         self._layout: QGridLayout = QGridLayout()
         self._layout.setRowStretch(0, 0)
-        # self._layout.setRowStretch(1, 1)
         self._layout.setRowStretch(1, 2)    # Middle section - increased
-        # self._layout.setRowStretch(2, 1)
         self._layout.setRowStretch(2, 2)    # Bottom section - decreased
         self._layout.setRowStretch(3, 0)
         # Format: setRowStretch(row_number, stretch_factor)
@@ -131,12 +130,15 @@ class MainWindow(QMainWindow):
     #region Methods for creating the user interface
     def _create_top_section(self) -> None:
         """
-        Creates the top section of the window with subject entry and message to Stim Jim
+        Creates the top section of the window with subject entry, stage dropdown, and channel dropdown
         """
-        # Create main top layout as a grid with 2 rows
+        # Create main top layout as a grid with 3 columns
         top_grid = QGridLayout()
-        top_grid.setColumnStretch(0, 1)
-        top_grid.setColumnStretch(1, 1)
+        top_grid.setColumnStretch(0, 1)     # Subject entry
+        top_grid.setColumnStretch(1, 1)     # Spacer
+        top_grid.setColumnStretch(2, 1)     # Stage selection
+        top_grid.setColumnStretch(3, 1)     # Spacer
+        top_grid.setColumnStretch(4, 1)     # Channel selection
         
         # First row left - Subject entry
         subject_layout = QHBoxLayout()
@@ -150,13 +152,13 @@ class MainWindow(QMainWindow):
         self._subject_entry.editingFinished.connect(self._on_subject_name_edited)
         self._msg_text_list.append(self._subject_entry) #store the text entry for later access.
 
-        #Add elements to layout
-        top_grid.addLayout(subject_layout, 0, 0)
+        #Add subject entry elements to layout
         subject_layout.addWidget(subject_label)
         subject_layout.addWidget(self._subject_entry)
         subject_layout.addStretch()
+        top_grid.addLayout(subject_layout, 0, 0)
         
-        #First row right - Stage dropdown
+        #First row center - Stage dropdown
         stage_layout = QHBoxLayout()
         stage_label = QLabel("Stage: ")
         stage_label.setFont(self._bold_font)
@@ -175,17 +177,39 @@ class MainWindow(QMainWindow):
         self._stage_selection_box.addItems(stage_strings)
 
         #Add elements to layout
-        top_grid.addLayout(stage_layout, 0, 1)
+        stage_layout.addStretch()
         stage_layout.addWidget(stage_label)
         stage_layout.addWidget(self._stage_selection_box)
         stage_layout.addStretch()
+        top_grid.addLayout(stage_layout, 0, 2)
+        
+        # First row right - EMG channel dropdown
+        channel_layout = QHBoxLayout()
+        channel_label = QLabel("EMG Channel: ")
+        channel_label.setFont(self._bold_font)
 
-        # Add subject row to grid
+        # Channel selection box
+        self._channel_selection_box = QComboBox()
+        self._channel_selection_box.setFont(self._regular_font)
+        self._channel_selection_box.setStyleSheet("QComboBox {color: #000000; background-color: #FFFFFF;}")
+        self._channel_selection_box.currentIndexChanged.connect(self._on_channel_selection_changed)
+
+        # Populate the stage selection box
+        channel_list: list[int] = list(range(1, 17))
+        self._channel_selection_box.addItems([str(c) for c in channel_list])
+
+        # Add elements to layout
+        channel_layout.addStretch()
+        channel_layout.addWidget(channel_label)
+        channel_layout.addWidget(self._channel_selection_box)
+        top_grid.addLayout(channel_layout, 0, 4)
+
+        # Add top grid to main layout
         self._layout.addLayout(top_grid, 0, 0)
 
     def _create_middle_section(self) -> None:
         """
-        Creates the middle section with two EMG data plots: one for individual trial EMG data
+        Creates the middle section with two EMG data plots: one for peri-stimulus EMG data
         and one for displaying the EMG values of the last 50 trials.
         """
         middle_grid = QGridLayout()
@@ -193,29 +217,6 @@ class MainWindow(QMainWindow):
         middle_grid.setRowStretch(1, 1)
         middle_grid.setColumnStretch(0, 1)
         middle_grid.setColumnStretch(1, 1)
-
-        #Create labels for each plot
-        # self._session_history_plot_selection_box = QComboBox()
-        # self._session_history_plot_selection_box.setFont(self._regular_font)
-        # self._session_history_plot_selection_box.setStyleSheet("QComboBox {color: #808080; background-color: #F0F0F0;}")
-        # self._session_history_plot_selection_box.setEnabled(False)
-        #self._session_history_plot_selection_box.currentIndexChanged.connect(self._on_session_history_plot_selection_index_changed)
-
-        # if (self._selected_stage is not None):
-        #     items: list[str] = self._selected_stage.get_session_plot_options()
-        #     for i in items:
-        #         self._session_history_plot_selection_box.addItem(i)
-        
-        # self._most_recent_trial_plot_selection_box = QComboBox()
-        # self._most_recent_trial_plot_selection_box.setFont(self._regular_font)
-        # self._most_recent_trial_plot_selection_box.setStyleSheet("QComboBox {color: #808080; background-color: #F0F0F0;}")
-        # self._most_recent_trial_plot_selection_box.setEnabled(False)
-        #self._most_recent_trial_plot_selection_box.currentIndexChanged.connect(self._on_most_recent_trial_plot_selection_index_changed)
-
-        # if (self._selected_stage is not None):
-        #     items: list[str] = self._selected_stage.get_trial_plot_options()
-        #     for i in items:
-        #         self._most_recent_trial_plot_selection_box.addItem(i)
 
         peri_stim_label = QLabel("Peri-Stimulus EMG signal")
         peri_stim_label.setFont(self._bold_font)
@@ -228,10 +229,6 @@ class MainWindow(QMainWindow):
         #This plot widget will show the session history
         self._peri_stim_plot_widget = pg.PlotWidget()
         self._peri_stim_plot_widget.setBackground('w')
-        
-        # #This plot will show the most recent trial
-        # self._previous_trial_plot_widget = pg.PlotWidget()
-        # self._previous_trial_plot_widget.setBackground('w')
 
         #This plot will show the live EMG data
         self._live_emg_graph_widget = pg.PlotWidget()
@@ -586,6 +583,19 @@ class MainWindow(QMainWindow):
             if (hasattr(self, "_start_stop_button")) and (self._start_stop_button is not None):
                 self._start_stop_button.setEnabled(False)
                 self._start_stop_button.setStyleSheet('QPushButton {color: #9D9D9D;}')
+
+    def _on_channel_selection_changed (self) -> None:
+        '''
+        This function is executed anytime the user selects a channel
+        in the EMG channel selection box.
+        '''
+
+        #Set the selected stage
+        current_stage_index = self._channel_selection_box.currentIndex()
+        if (current_stage_index >= 0):
+            OpenEphysStreamer.CHANNEL_SHOWN = current_stage_index
+        else:
+            OpenEphysStreamer.CHANNEL_SHOWN = 0
 
     def _on_data_received (self, received: Tuple[np.ndarray, float]) -> None:
         #Grab the data was sent from Open Ephys

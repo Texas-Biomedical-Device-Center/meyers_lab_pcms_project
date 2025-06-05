@@ -8,6 +8,12 @@ from typing import Tuple
 
 class OpenEphysStreamer (object):
 
+    #region Constants
+
+    CHANNEL_SHOWN: int = 0
+
+    #endregion
+
     #region Constructor
 
     def __init__(self, ):
@@ -165,8 +171,8 @@ class OpenEphysStreamer (object):
                     channel_num = c['channel_num']
                     sample_rate = c['sample_rate']
 
-                    #Check to see if the message is from channel 1
-                    if channel_num == 1:
+                    #Check which channel the data is coming from
+                    if channel_num == OpenEphysStreamer.CHANNEL_SHOWN:
                         #Get the data from the message
                         try:
                             n_arr = np.frombuffer(message[2], dtype=np.float32)
