@@ -102,7 +102,7 @@ class SalineBathDemoDataStage(Stage):
 
         #Define a file name for the file to which we will save data
         file_timestamp: str = self.current_datetime.strftime("%Y%m%dT%H%M%S")
-        file_name: str = f"{self._subject_id}_{file_timestamp}.hrs1"
+        file_name: str = f"{self._subject_id}_{file_timestamp}.pcms"
 
         #Open a file for saving data for this stage
         self._fid = open(os.path.join(file_path, file_name), "wb")
