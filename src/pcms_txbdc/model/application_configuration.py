@@ -2,7 +2,8 @@ from serial.tools.list_ports_common import ListPortInfo
 import serial
 import time
 
-from .stimjim import StimJim, PulseTrain, PulseStage, StimJimOutputModes, STIMJIM_SERIAL_BAUDRATE
+from ...am_systems_4100 import AmSystems4100, AmSystems4100_SerialConnectionInfo
+#from .stimjim import StimJim, PulseTrain, PulseStage, StimJimOutputModes, STIMJIM_SERIAL_BAUDRATE
 
 class ApplicationConfiguration:
 
@@ -12,6 +13,14 @@ class ApplicationConfiguration:
     #The author/organization of the application
     appauthor: str = "TxBDC"
 
+    # AM Systems 4100 stimulator object
+    stimulator: list[AmSystems4100] = []
+
+    # AM Systems 4100 connection info
+    am4100_connection_info: AmSystems4100_SerialConnectionInfo = AmSystems4100_SerialConnectionInfo()
+    
+    # Multiple stimjim configuration
+    """
     #StimJim serial connection
     stimjim_serial: list[serial.Serial] = []
 
@@ -20,6 +29,7 @@ class ApplicationConfiguration:
 
     # Last parameters sent to StimJim added for ease of tracking
     last_stimjim_command: list[str] = []
+    """
 
     #region Methods
 

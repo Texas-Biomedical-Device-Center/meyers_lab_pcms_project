@@ -1,6 +1,7 @@
 import serial
 import socket
 from dataclasses import dataclass
+from serial.tools.list_ports_common import ListPortInfo
 
 from .am_systems_4100_comm_constants import CONSTANTS
 from .am_systems_4100_comm_constants import VALUES
@@ -11,12 +12,16 @@ class AmSystems4100_ConnectionInfo:
 
 @dataclass
 class AmSystems4100_SerialConnectionInfo (AmSystems4100_ConnectionInfo):
-    port_name: str = ""
+    port_name: list[ListPortInfo] = []
 
 @dataclass
 class AmSystems4100_TcpConnectionInfo (AmSystems4100_ConnectionInfo):
     ip_address: str = ""
     port: int = 23
+
+def discover_ports():
+    ports = list(serial.tools.list_ports.grep(r"A-M"))
+    return ports
 
 class TcpBuffer:
 
