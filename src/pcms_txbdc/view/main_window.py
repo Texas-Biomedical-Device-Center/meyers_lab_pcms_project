@@ -649,11 +649,11 @@ class MainWindow(QMainWindow):
         if sender == self._brain_stim_button:
             label = "Brain"
             amplitude = Stage.STIM1_AMPLITUDE
-            stim_number = 1
+            stim_number = 0
         elif sender == self._nerve_stim_button:
             label = "Nerve"
             amplitude = Stage.STIM2_AMPLITUDE
-            stim_number = 2
+            stim_number = 1
         else:
             # Unknown sender
             return
@@ -669,7 +669,7 @@ class MainWindow(QMainWindow):
             self._update_session_messages()
 
         else:
-            stim = ApplicationConfiguration.stimulator[stim_number-1]
+            stim = ApplicationConfiguration.stimulator[stim_number]
             
             time.sleep(0.1)     # wait for AM 4100 to load the parameters
 
@@ -677,7 +677,7 @@ class MainWindow(QMainWindow):
             stim.trigger_single()
 
             # Format and send the message
-            message = SessionMessage(f"{label} Stim (stimjim {stim_number}): {ApplicationConfiguration.last_stimjim_command[stim_number]}")
+            message = SessionMessage(f"{label} AM 4100 #{stim_number}: stim")
             self._session_messages.append(message)
             self._update_session_messages()
 

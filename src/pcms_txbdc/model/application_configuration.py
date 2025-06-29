@@ -34,16 +34,15 @@ class ApplicationConfiguration:
     @staticmethod
     def connect_to_am_systems_4100 (port: ListPortInfo) -> None:
         # Create serial connection information object
-        connection_info: AmSystems4100_SerialConnectionInfo = AmSystems4100_SerialConnectionInfo(port)
+        # connection_info: AmSystems4100_SerialConnectionInfo = AmSystems4100_SerialConnectionInfo()
+        # connection_info.port_name = port.device
 
         # Uncomment later when implementing TCP connection with IP address
-        """
         #Create a connection information object
         connection_info: AmSystems4100_TcpConnectionInfo = AmSystems4100_TcpConnectionInfo(
-            ApplicationConfiguration.current_booth.model_4100_pin,
-            ApplicationConfiguration.current_booth.model_4100_ip_address
+            1204,
+            "10.133.71.4"
         )
-        """
 
         #Connect to the stimulator
         new_am4100 = AmSystems4100(connection_info)
@@ -155,7 +154,7 @@ class ApplicationConfiguration:
         #   Train duration = 1000 us
         #   Total pulses = 1
 
-        if len(ApplicationConfiguration.stimulator) > 0:
+        if index < len(ApplicationConfiguration.stimulator):
             stim: AmSystems4100 = ApplicationConfiguration.stimulator[index]
 
             #Stop any active stimulation

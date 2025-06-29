@@ -223,36 +223,18 @@ import sys
 import glob
 import serial
 
+AM_4100_SERIAL_INFO = "VID:PID=0403:6001"   # This is for FTDI
+REQUIRE_AM_4100: bool = False
 
-def serial_ports():
-    """ Lists serial port names
+def discover_ports(pattern=AM_4100_SERIAL_INFO):
+    ports = list(serial.tools.list_ports.grep(pattern))
+    return ports
 
-        :raises EnvironmentError:
-            On unsupported or unknown platforms
-        :returns:
-            A list of the serial ports available on the system
-    """
-    if sys.platform.startswith('win'):
-        ports = ['COM%s' % (i + 1) for i in range(256)]
-    elif sys.platform.startswith('linux') or sys.platform.startswith('cygwin'):
-        # this excludes your current terminal "/dev/tty"
-        ports = glob.glob('/dev/tty[A-Za-z]*')
-    elif sys.platform.startswith('darwin'):
-        ports = glob.glob('/dev/tty.*')
-    else:
-        raise EnvironmentError('Unsupported platform')
+#Discover serial ports that match the StimJim hardware
+possible_ports: list[ListPortInfo] = discover_ports()
 
-    result = []
-    for port in ports:
-        try:
-            s = serial.Serial(port)
-            s.close()
-            result.append(port)
-        except (OSError, serial.SerialException):
-            pass
-    return result
-
-serial_ports()
+for port in possible_ports:
+    print(port.device)
 
 
 class LayoutGenerator:
