@@ -19,10 +19,6 @@ class AmSystems4100_TcpConnectionInfo (AmSystems4100_ConnectionInfo):
     ip_address: str = ""
     port: int = 23
 
-def discover_ports():
-    ports = list(serial.tools.list_ports.grep(r"A-M"))
-    return ports
-
 class TcpBuffer:
 
     def __init__(self, sock: socket.socket):
