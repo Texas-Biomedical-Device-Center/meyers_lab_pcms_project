@@ -1,12 +1,14 @@
 import sys
 from PySide6 import QtWidgets
 from PySide6.QtWidgets import QMessageBox
+
 from pcms_txbdc.view.main_window import MainWindow
 #from pcms_txbdc.model.stimjim import discover_ports
-from ...am_systems_4100 import AmSystems4100_ConnectionInfo, discover_ports
 from pcms_txbdc.model.application_configuration import ApplicationConfiguration
+
 from serial.tools.list_ports_common import ListPortInfo
 import serial
+import serial.tools.list_ports
 
 AM_4100_SERIAL_INFO = "VID:PID=0403:6001"   # This is for FTDI
 REQUIRE_AM_4100: bool = False
@@ -34,8 +36,8 @@ def main () -> None:
         return
 
     #Connect to the AM Systems Model 4100
-    if (len(possible_ports) > 0):
-        ApplicationConfiguration.connect_to_am_systems_4100(possible_ports[0].device)
+    for port in possible_ports:
+        ApplicationConfiguration.connect_to_am_systems_4100(port.device)
 
     #Connect to the StimJim
     # for port in possible_ports:

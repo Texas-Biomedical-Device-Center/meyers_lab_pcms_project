@@ -66,8 +66,8 @@ class SalineBathDemoDataStage(Stage):
         self.current: float = None
 
         # Set up StimJim parameters
-        ApplicationConfiguration.set_biphasic_stimulus_pulse_parameters_on_stimjim(0, Stage.STIM1_AMPLITUDE)
-        ApplicationConfiguration.set_biphasic_stimulus_pulse_parameters_on_stimjim(1, Stage.STIM2_AMPLITUDE)
+        ApplicationConfiguration.set_biphasic_stimulus_pulse_parameters(0, Stage.STIM1_AMPLITUDE)
+        ApplicationConfiguration.set_biphasic_stimulus_pulse_parameters(1, Stage.STIM2_AMPLITUDE)
 
     #endregion
 

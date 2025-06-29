@@ -12,11 +12,11 @@ class AmSystems4100_ConnectionInfo:
 
 @dataclass
 class AmSystems4100_SerialConnectionInfo (AmSystems4100_ConnectionInfo):
-    port_name: list[ListPortInfo] = []
+    port_name: str = ""     # COM port of connected AM 4100
 
 @dataclass
 class AmSystems4100_TcpConnectionInfo (AmSystems4100_ConnectionInfo):
-    ip_address: str = ""
+    ip_address: str = ""    # IP address of connected AM 4100
     port: int = 23
 
 class TcpBuffer:

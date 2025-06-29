@@ -33,8 +33,8 @@ from ..model.open_ephys_streamer import OpenEphysStreamer
 from ..model.background_worker import BackgroundWorker
 from ..model.stages.stage import Stage
 from ..model.stages.salinebath_demodata_stage import SalineBathDemoDataStage
-from ..model.stages.emg_characterization_stage import EmgCharacterizationStage
-from ..model.stages.mh_recruitment_curve_stage import MhRecruitmentCurveStage
+# from ..model.stages.emg_characterization_stage import EmgCharacterizationStage
+# from ..model.stages.mh_recruitment_curve_stage import MhRecruitmentCurveStage
 from ..model.session_message import SessionMessage
 from ..model.application_configuration import ApplicationConfiguration
 
@@ -66,11 +66,7 @@ class MainWindow(QMainWindow):
         self._stages: list[Stage] = []
 
         salinebath_demodata_stage: SalineBathDemoDataStage = SalineBathDemoDataStage()
-        emg_characterization_stage: EmgCharacterizationStage = EmgCharacterizationStage()
-        mh_recruitment_curve_stage: MhRecruitmentCurveStage = MhRecruitmentCurveStage()
         self._stages.append(salinebath_demodata_stage)
-        self._stages.append(emg_characterization_stage)
-        self._stages.append(mh_recruitment_curve_stage)
 
         # Initialize the "selected stage"
         self._selected_stage: Stage = self._stages[0]
@@ -494,7 +490,7 @@ class MainWindow(QMainWindow):
         self.background_worker.cancel()
 
         #Close the StimJim serial connection if it exists
-        ApplicationConfiguration.disconnect_from_stimjim()
+        ApplicationConfiguration.disconnect_from_am_systems_4100()
 
         #Accept the event
         event.accept()
@@ -662,22 +658,23 @@ class MainWindow(QMainWindow):
             # Unknown sender
             return
             
-        # Set StimJim parameters
-        ApplicationConfiguration.set_biphasic_stimulus_pulse_parameters_on_stimjim(stim_number, amplitude)
+        # Set stimulator parameters
+        ApplicationConfiguration.set_biphasic_stimulus_pulse_parameters(stim_number, amplitude)
 
-        # Output an error message if no StimJim is found. Else, send command "T0" to send stimulation
-        if not (0 <= stim_number < len(ApplicationConfiguration.stimjim)) or ApplicationConfiguration.stimjim[stim_number] is None:
+        # Output an error message if no AM 4100 stimulator is found. Else, send command to send stimulus
+        if not (0 <= stim_number < len(ApplicationConfiguration.stimulator)) or ApplicationConfiguration.stimulator[stim_number] is None:
             # Format and send the message
-            message = SessionMessage(f"StimJim {stim_number} not connected!")
+            message = SessionMessage(f"AM 4100 stimulator #{stim_number} not connected!")
             self._session_messages.append(message)
             self._update_session_messages()
 
         else:
-            stimjim = ApplicationConfiguration.stimjim[stim_number]
+            stim = ApplicationConfiguration.stimulator[stim_number-1]
             
-            time.sleep(0.2)     # wait for stimjim to get the parameters
+            time.sleep(0.1)     # wait for AM 4100 to load the parameters
 
-            stimjim.send_command("T0")
+            stim.set_active(True)
+            stim.trigger_single()
 
             # Format and send the message
             message = SessionMessage(f"{label} Stim (stimjim {stim_number}): {ApplicationConfiguration.last_stimjim_command[stim_number]}")

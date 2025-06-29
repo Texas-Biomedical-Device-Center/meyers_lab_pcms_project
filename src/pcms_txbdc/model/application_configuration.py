@@ -2,7 +2,8 @@ from serial.tools.list_ports_common import ListPortInfo
 import serial
 import time
 
-from ...am_systems_4100 import AmSystems4100, AmSystems4100_ConnectionInfo, AmSystems4100_SerialConnectionInfo, AmSystems4100_TcpConnectionInfo
+from am_systems_4100.am_systems_4100 import AmSystems4100
+from am_systems_4100.am_systems_4100 import AmSystems4100_SerialConnectionInfo, AmSystems4100_TcpConnectionInfo
 #from .stimjim import StimJim, PulseTrain, PulseStage, StimJimOutputModes, STIMJIM_SERIAL_BAUDRATE
 
 class ApplicationConfiguration:
@@ -16,9 +17,6 @@ class ApplicationConfiguration:
     # AM Systems 4100 stimulator object
     stimulator: list[AmSystems4100] = []
 
-    # AM Systems 4100 connection info
-    am4100_connection_info: AmSystems4100_SerialConnectionInfo = AmSystems4100_SerialConnectionInfo()
-    
     # Multiple stimjim configuration
     """
     #StimJim serial connection
@@ -35,14 +33,21 @@ class ApplicationConfiguration:
 
     @staticmethod
     def connect_to_am_systems_4100 (port: ListPortInfo) -> None:
+        # Create serial connection information object
+        connection_info: AmSystems4100_SerialConnectionInfo = AmSystems4100_SerialConnectionInfo(port)
+
+        # Uncomment later when implementing TCP connection with IP address
+        """
         #Create a connection information object
         connection_info: AmSystems4100_TcpConnectionInfo = AmSystems4100_TcpConnectionInfo(
             ApplicationConfiguration.current_booth.model_4100_pin,
             ApplicationConfiguration.current_booth.model_4100_ip_address
         )
+        """
 
         #Connect to the stimulator
-        ApplicationConfiguration.stimulator = AmSystems4100(connection_info)
+        new_am4100 = AmSystems4100(connection_info)
+        ApplicationConfiguration.stimulator.append(new_am4100)
 
     """
     def connect_to_stimjim (port: ListPortInfo) -> None:
@@ -62,7 +67,9 @@ class ApplicationConfiguration:
     def disconnect_from_am_systems_4100 () -> None:
         if (ApplicationConfiguration.stimulator is not None):
             try:
-                ApplicationConfiguration.stimulator._sock.close()
+                for stim in ApplicationConfiguration.stimulator:
+                    ApplicationConfiguration.stimulator[stim]._sock.close()
+                ApplicationConfiguration.stimulator = None
             except:
                 pass
         
@@ -140,7 +147,7 @@ class ApplicationConfiguration:
         """
 
     @staticmethod
-    def set_biphasic_stimulus_pulse_parameters (amplitude_ma: float) -> None:
+    def set_biphasic_stimulus_pulse_parameters (index: int, amplitude_ma: float) -> None:
         #   Current = decided by the caller of the function
         #   Frequency = N/A
         #   Pulse phase width = 500 us
@@ -148,51 +155,52 @@ class ApplicationConfiguration:
         #   Train duration = 1000 us
         #   Total pulses = 1
 
-        stim: AmSystems4100 = ApplicationConfiguration.stimulator
+        if len(ApplicationConfiguration.stimulator) > 0:
+            stim: AmSystems4100 = ApplicationConfiguration.stimulator[index]
 
-        #Stop any active stimulation
-        stim.set_active(False)
+            #Stop any active stimulation
+            stim.set_active(False)
 
-        #Tell the unit to produce "current" pulses (not "voltage" pulses).
-        stim.set_mode(1)
+            #Tell the unit to produce "current" pulses (not "voltage" pulses).
+            stim.set_mode(1)
 
-        #Tell the stimulator unit that we will provide a specific number
-        #of pulses for it to generate
-        stim.set_auto(1)
+            #Tell the stimulator unit that we will provide a specific number
+            #of pulses for it to generate
+            stim.set_auto(1)
 
-        #Tell the stimulator unit that there will be 0 delay between the trigger
-        #and the onset of the stimulation train.
-        stim.set_train_delay(0)
+            #Tell the stimulator unit that there will be 0 delay between the trigger
+            #and the onset of the stimulation train.
+            stim.set_train_delay(0)
 
-        #Tell the stimulator unit that we will produce 1 stimulation train.
-        stim.set_train_quantity(1)
+            #Tell the stimulator unit that we will produce 1 stimulation train.
+            stim.set_train_quantity(1)
 
-        #Tell the stimulator unit that there will be 0 delay between the onset
-        #of the stimulation train and the first event within the train.
-        stim.set_event_delay(0)
+            #Tell the stimulator unit that there will be 0 delay between the onset
+            #of the stimulation train and the first event within the train.
+            stim.set_event_delay(0)
 
-        #Tell the stimulator unit that we want to use biphasic pulses.
-        stim.set_event_type(1)
+            #Tell the stimulator unit that we want to use biphasic pulses.
+            stim.set_event_type(1)
 
-        #Tell the stimulator unit that we will deliver exactly 1 pulse.
-        stim.set_event_quantity(1)
+            #Tell the stimulator unit that we will deliver exactly 1 pulse.
+            stim.set_event_quantity(1)
 
-        #Tell the stimulator unit that each phase of the biphasic pulse will be 500 uS
-        #in duration.
-        stim.set_event_duration1(500)
+            #Tell the stimulator unit that each phase of the biphasic pulse will be 500 uS
+            #in duration.
+            stim.set_event_duration1(500)
 
-        #Tell the stimulator unit that each phase of the biphasic pulse will be 0.8 mA
-        #in amplitude.
-        stim.set_event_amplitude1(amplitude_ma)
+            #Tell the stimulator unit that each phase of the biphasic pulse will be 0.8 mA
+            #in amplitude.
+            stim.set_event_amplitude1(amplitude_ma)
 
-        #Biphasic pulses do not use "duration2" and "amplitude2", so we will set them
-        #to a value of 0.
-        stim.set_event_duration2(0)
-        stim.set_event_amplitude2(0)
+            #Biphasic pulses do not use "duration2" and "amplitude2", so we will set them
+            #to a value of 0.
+            stim.set_event_duration2(0)
+            stim.set_event_amplitude2(0)
 
-        #Tell the stimulator unit that there is 0 uS interval between the two phases
-        #of the biphasic pulse.
-        stim.set_event_duration3(0)
+            #Tell the stimulator unit that there is 0 uS interval between the two phases
+            #of the biphasic pulse.
+            stim.set_event_duration3(0)
 
         pass
 
