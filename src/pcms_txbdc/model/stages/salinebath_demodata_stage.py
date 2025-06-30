@@ -69,10 +69,10 @@ class SalineBathDemoDataStage(Stage):
         # Set up stimulator amplitude parameters
         self._amplitude_list = [Stage.STIM1_AMPLITUDE, Stage.STIM2_AMPLITUDE]
 
-        for stim in enumerate(ApplicationConfiguration.stimulator):
-            if (stim < len(ApplicationConfiguration.stimulator) and ApplicationConfiguration.stimulator is not None):
-                amplitude = self._amplitude_list[stim]
-                ApplicationConfiguration.set_biphasic_stimulus_pulse_parameters(stim, amplitude)
+        for i, stim in enumerate(ApplicationConfiguration.stimulator):
+            if (i < len(ApplicationConfiguration.stimulator) and ApplicationConfiguration.stimulator is not None):
+                amplitude = self._amplitude_list[i]
+                ApplicationConfiguration.set_biphasic_stimulus_pulse_parameters(i, amplitude)
             else:
                 # Format and send the message
                 message = SessionMessage(f"AM 4100 stimulator not found. Stage set up for testing without stimulator.")
@@ -95,6 +95,19 @@ class SalineBathDemoDataStage(Stage):
 
         # Set the phase of the stage
         self._stim_phase = "STIM1"
+
+        # Set up stimulator amplitude parameters
+        self._amplitude_list = [Stage.STIM1_AMPLITUDE, Stage.STIM2_AMPLITUDE]
+
+        for i, stim in enumerate(ApplicationConfiguration.stimulator):
+            if (i < len(ApplicationConfiguration.stimulator) and ApplicationConfiguration.stimulator is not None):
+                amplitude = self._amplitude_list[i]
+                ApplicationConfiguration.set_biphasic_stimulus_pulse_parameters(i, amplitude)
+            else:
+                # Format and send the message
+                message = SessionMessage(f"AM 4100 stimulator not found. Stage set up for testing without stimulator.")
+                self._session_messages.append(message)
+                self._update_session_messages()
 
         # Create a time stamp for when the stimulation was activated
         self._stim_phase_timestamp = None
