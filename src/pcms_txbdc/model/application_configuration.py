@@ -34,14 +34,14 @@ class ApplicationConfiguration:
     @staticmethod
     def connect_to_am_systems_4100 (port: ListPortInfo) -> None:
         # Create serial connection information object
-        # connection_info: AmSystems4100_SerialConnectionInfo = AmSystems4100_SerialConnectionInfo()
-        # connection_info.port_name = port.device
+        # connection_info: AmSystems4100_SerialConnectionInfo = AmSystems4100_SerialConnectionInfo(
+        #   port.device     # COM port number for windows (i.e. COM10)
+        # )
 
-        # Uncomment later when implementing TCP connection with IP address
-        #Create a connection information object
+        # Create TCP connection information object
         connection_info: AmSystems4100_TcpConnectionInfo = AmSystems4100_TcpConnectionInfo(
-            1204,
-            "10.133.71.4"
+            1204,           # pin number
+            "10.133.71.4"   # IP address
         )
 
         #Connect to the stimulator
@@ -71,8 +71,6 @@ class ApplicationConfiguration:
                 ApplicationConfiguration.stimulator = None
             except:
                 pass
-        
-        ApplicationConfiguration.stimulator = None
 
     """
     def disconnect_from_stimjim () -> None:     # change to take input index to disconnect individual stimjims
@@ -200,6 +198,9 @@ class ApplicationConfiguration:
             #Tell the stimulator unit that there is 0 uS interval between the two phases
             #of the biphasic pulse.
             stim.set_event_duration3(0)
+
+        else:
+            print("index out of range")
 
         pass
 

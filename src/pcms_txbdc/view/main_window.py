@@ -489,7 +489,7 @@ class MainWindow(QMainWindow):
         #Shut down the background thread
         self.background_worker.cancel()
 
-        #Close the StimJim serial connection if it exists
+        #Close the AM 4100 stimulator serial/tcp connection if it exists
         ApplicationConfiguration.disconnect_from_am_systems_4100()
 
         #Accept the event
@@ -638,12 +638,12 @@ class MainWindow(QMainWindow):
     def _on_single_stim_button_clicked(self) -> None:
         """
         Handles clicks for Brain/Nerve Stim buttons.
-        Outputs which stimjim (row) was activated and the amplitude used.
+        Outputs which stimulator (row) was activated.
         """
         sender = self.sender()
-        stim_number = None
-        amplitude = None
         label = None
+        amplitude = None
+        stim_number = None
 
         # Determine if it's brain or nerve based on which button was clicked
         if sender == self._brain_stim_button:
@@ -658,9 +658,6 @@ class MainWindow(QMainWindow):
             # Unknown sender
             return
             
-        # Set stimulator parameters
-        ApplicationConfiguration.set_biphasic_stimulus_pulse_parameters(stim_number, amplitude)
-
         # Output an error message if no AM 4100 stimulator is found. Else, send command to send stimulus
         if not (0 <= stim_number < len(ApplicationConfiguration.stimulator)) or ApplicationConfiguration.stimulator[stim_number] is None:
             # Format and send the message
@@ -669,6 +666,8 @@ class MainWindow(QMainWindow):
             self._update_session_messages()
 
         else:
+            # Set stimulator parameters
+            ApplicationConfiguration.set_biphasic_stimulus_pulse_parameters(stim_number, amplitude)
             stim = ApplicationConfiguration.stimulator[stim_number]
             
             time.sleep(0.1)     # wait for AM 4100 to load the parameters
@@ -677,7 +676,7 @@ class MainWindow(QMainWindow):
             stim.trigger_single()
 
             # Format and send the message
-            message = SessionMessage(f"{label} AM 4100 #{stim_number}: stim")
+            message = SessionMessage(f"{label} AM 4100 #{stim_number} activated")
             self._session_messages.append(message)
             self._update_session_messages()
 

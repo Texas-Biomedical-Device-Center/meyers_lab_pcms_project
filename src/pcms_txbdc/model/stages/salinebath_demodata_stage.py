@@ -11,12 +11,13 @@ from ..session_message import SessionMessage
 from ..application_configuration import ApplicationConfiguration
 from ..fileio_helpers import FileIO_Helpers
 
-from ..stimjim import StimJim
+# from ..stimjim import StimJim
+from am_systems_4100.am_systems_4100 import AmSystems4100
 
 class SalineBathDemoDataStage(Stage):
     #region Constants
 
-    # This defines the gap (ms) between StimJim1 and StimJim2 activation
+    # This defines the gap (ms) between Stimulator 1 and Stimulator 2 activation
     STIM_GAP_MILLISECONDS: float = 100.0
     
     # This defines the wait time (sec) after stimulations were induced
@@ -65,9 +66,18 @@ class SalineBathDemoDataStage(Stage):
         self._stim_phase: str = "STIM1"
         self.current: float = None
 
-        # Set up StimJim parameters
-        ApplicationConfiguration.set_biphasic_stimulus_pulse_parameters(0, Stage.STIM1_AMPLITUDE)
-        ApplicationConfiguration.set_biphasic_stimulus_pulse_parameters(1, Stage.STIM2_AMPLITUDE)
+        # Set up stimulator amplitude parameters
+        self._amplitude_list = [Stage.STIM1_AMPLITUDE, Stage.STIM2_AMPLITUDE]
+
+        for stim in enumerate(ApplicationConfiguration.stimulator):
+            if (stim < len(ApplicationConfiguration.stimulator) and ApplicationConfiguration.stimulator is not None):
+                amplitude = self._amplitude_list[stim]
+                ApplicationConfiguration.set_biphasic_stimulus_pulse_parameters(stim, amplitude)
+            else:
+                # Format and send the message
+                message = SessionMessage(f"AM 4100 stimulator not found. Stage set up for testing without stimulator.")
+                self._session_messages.append(message)
+                self._update_session_messages()
 
     #endregion
 
@@ -115,8 +125,8 @@ class SalineBathDemoDataStage(Stage):
 
     def process(self, data: np.ndarray) -> None:
         '''
-        Process that simply sends command "T0" to StimJims 1 and 2
-        in a timely manner. Each phase is split to allow PAUSE button.
+        Process that set_active and trigger_single for AM 4100 #1 and #2, or displays
+        a message in a timely manner. Each phase is split to allow PAUSE button.
         '''
         current_timestamp = time.time()
 
@@ -124,25 +134,26 @@ class SalineBathDemoDataStage(Stage):
         if self._stim_index >= self.STIM_INSTANCE_COUNT:
             return
 
-        # First phase, first StimJim is activated (StimJim 1 "Brain")
+        # First phase, first AM 4100 stimulator is activated (AM 4100 #1 "Brain")
         if self._stim_phase == "STIM1":
 
             # Set the timestamp to the current time.
             self._stim_phase_timestamp = current_timestamp
 
-            # Check so that "T0" will only be sent if stimjim is actually connected
-            if (self._check_stimjim_availability(0)):
-                # Display a message: "Stim iteration #n - StimJim 1".
-                message: SessionMessage = SessionMessage(f"Stim iteration #{self._stim_index + 1} - StimJim 1")
+            # Check if first AM 4100 is connected
+            if (self._check_am_4100_availability(0)):
+                # Display a message: "Stim iteration #n - AM 4100 #1".
+                message: SessionMessage = SessionMessage(f"Stim iteration #{self._stim_index + 1} - AM 4100 #1")
                 self.signals.new_message.emit(message)
 
-                # Send the activation command to stimjim[0], which is StimJim 1 "Brain".
-                ApplicationConfiguration.stimjim[0].send_command("T0")
+                # Send the activation command to stimulator[0], which is AM 4100 #1 "Brain".
+                stim = ApplicationConfiguration.stimulator[0]
+                stim.set_active(True)
+                stim.trigger_single()
 
-            # If no stimjim connected, justdisplay a message
             else:
-                # Display a message: "StimJim not found. Virtual stimulation: Stim iteration #n - StimJim 1".
-                message: SessionMessage = SessionMessage(f"StimJim not found. Virtual stimulation: Stim iteration #{self._stim_index + 1} - StimJim 1")
+                # Display a message: "Stimulator not found. Stim iteration #n - Stimulator #1".
+                message: SessionMessage = SessionMessage(f"Stimulator not found. Stim iteration #{self._stim_index + 1} - Stimulator #1")
                 self.signals.new_message.emit(message)
 
             # Copy data into the demo data object
@@ -151,7 +162,7 @@ class SalineBathDemoDataStage(Stage):
             # Set phase to next.
             self._stim_phase = "WAIT_GAP"
 
-        # Second phase, simply a wait time between StimJim 1 and 2.
+        # Second phase, simply a wait time between stimulators 1 and 2.
         elif self._stim_phase == "WAIT_GAP":
 
             # Copy data into the demo data object
@@ -162,24 +173,26 @@ class SalineBathDemoDataStage(Stage):
                 # Set phase to next.
                 self._stim_phase = "STIM2"
 
-        # Third phase, second StimJim is activated (StimJim 2 "Nerve")
+        # Third phase, second AM 4100 is activated (AM 4100 #2 "Nerve")
         elif self._stim_phase == "STIM2":
 
             # Set the timestamp to the current time.
             self._stim_phase_timestamp = current_timestamp
 
-            # Check so that "T0" will only be sent if stimjim is actually connected
-            if (self._check_stimjim_availability(1)):
-                # Display a message: "Stim iteration #n - StimJim 2"
-                message: SessionMessage = SessionMessage(f"Stim iteration #{self._stim_index + 1} - StimJim 2")
+            # Check if second AM 4100 is connected
+            if (self._check_am_4100_availability(1)):
+                # Display a message: "Stim iteration #n - AM 4100 #2"
+                message: SessionMessage = SessionMessage(f"Stim iteration #{self._stim_index + 1} - AM 4100 #2")
                 self.signals.new_message.emit(message)
 
-                # Send the activation command to stimjim[1], which is StimJim 2 "Nerve".
-                ApplicationConfiguration.stimjim[1].send_command("T0")
+                # Send the activation command to stimulator[1], which is AM 4100 #2 "Nerve".
+                stim = ApplicationConfiguration.stimulator[1]
+                stim.set_active(True)
+                stim.trigger_single()
 
             else:
-                # Display a message: "StimJim not found. Virtual stimulation: Stim iteration #n - StimJim 2"
-                message: SessionMessage = SessionMessage(f"StimJim not found. Virtual stimulation: Stim iteration #{self._stim_index + 1} - StimJim 2")
+                # Display a message: "Stimulator not found. Stim iteration #n - Stimulator #2"
+                message: SessionMessage = SessionMessage(f"Stimulator not found. Stim iteration #{self._stim_index + 1} - Stimulator #2")
                 self.signals.new_message.emit(message)
 
             # Copy data into the demo data object
@@ -241,9 +254,9 @@ class SalineBathDemoDataStage(Stage):
 
             pass
 
-    def _check_stimjim_availability(self, index: int) -> bool:
-        stimjim_list = ApplicationConfiguration.stimjim
-        if (index < len(stimjim_list) and stimjim_list[index] is not None):
+    def _check_am_4100_availability(self, index: int) -> bool:
+        am_4100_list = ApplicationConfiguration.stimulator
+        if (index < len(am_4100_list) and am_4100_list[index] is not None):
             return True
         else:
             return False
