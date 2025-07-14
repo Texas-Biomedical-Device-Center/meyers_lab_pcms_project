@@ -82,7 +82,7 @@ class MainWindow(QMainWindow):
             description="15 min PCMS, 5s interval, Stim #0 and #1",
             interval_sec=5,
             duration_min=15,
-            stim_indices=[0, 1]
+            stim_indices=[0, 1, 2]
         )
         self._stages.append(pcms_stage_1)
 
@@ -91,7 +91,7 @@ class MainWindow(QMainWindow):
             description="15 min PCMS with vagus, 5s interval, Stim #0 and #1",
             interval_sec=5,
             duration_min=15,
-            stim_indices=[0, 1]
+            stim_indices=[0, 1, 2]
         )
         self._stages.append(pcms_stage_2)
 

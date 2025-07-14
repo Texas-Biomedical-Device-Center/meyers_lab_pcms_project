@@ -25,6 +25,7 @@ class Stage (object):
     STAGE_TYPE_EMG_CHARACTERIZATION: int = 1
     STAGE_TYPE_RECRUITMENT_CURVE: int = 2
     STAGE_TYPE_EXPERIMENT: int = 3
+    STAGE_TYPE_CONDITIONING: int = 4
 
     # Amplitude values that were manually set
     STIM1_AMPLITUDE: int = 0.5      # µA
