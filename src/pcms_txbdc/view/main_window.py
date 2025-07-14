@@ -33,6 +33,8 @@ from ..model.open_ephys_streamer import OpenEphysStreamer
 from ..model.background_worker import BackgroundWorker
 from ..model.stages.stage import Stage
 from ..model.stages.salinebath_demodata_stage import SalineBathDemoDataStage
+from ..model.stages.pcms_stages import Stage0aFWaveLatency, Stage0bMEPLatency, PCMSConditioningStage
+
 # from ..model.stages.emg_characterization_stage import EmgCharacterizationStage
 # from ..model.stages.mh_recruitment_curve_stage import MhRecruitmentCurveStage
 from ..model.session_message import SessionMessage
@@ -436,6 +438,16 @@ class MainWindow(QMainWindow):
 
         #Add the bottom layout to the primary grid layout
         self._layout.addLayout(bottom_layout, 2, 0)
+
+
+        # button for stages: stims controls are created
+        self._connect_stim_button = QPushButton("Connect Stim")
+        self._connect_stim_button.setFont(self._regular_font)
+        self._connect_stim_button.setStyleSheet('QPushButton {color: blue;}')
+        self._connect_stim_button.setFixedWidth(150)
+        self._connect_stim_button.clicked.connect(self._on_connect_stimulator_clicked)
+        bottom_layout.addWidget(self._connect_stim_button, 0, 4)  # adjust position if needed
+
 
         pass
 
@@ -969,4 +981,27 @@ class MainWindow(QMainWindow):
          """
         self._live_emg_line_object.setData(self._live_emg_x_data, self._emg_signal_data)
         
+
+
+
+    def _on_connect_stimulator_clicked(self) -> None:
+        try:
+            # tries connecting to the AM Systems 4100 stimulators
+            ApplicationConfiguration.connect_to_am_systems_4100(None)  # None means auto-detect
+            # Success message
+            self._session_messages.append(SessionMessage("SUCESS - Connected to AM Systems 4100 stimulator(s)."))
+            # optionally enable stim buttons after connection
+            self._brain_stim_button.setEnabled(True)
+            self._nerve_stim_button.setEnabled(True)
+            
+        except Exception as e:
+            # failure message
+            self._session_messages.append(SessionMessage(f"Error - Connection failed: {str(e)}"))
+            # disable stimjims buttons if connection fails
+            self._brain_stim_button.setEnabled(False)
+            self._nerve_stim_button.setEnabled(False)
+            
+        self._update_session_messages()
+
+
     #endregion
