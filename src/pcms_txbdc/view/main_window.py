@@ -33,7 +33,7 @@ from ..model.open_ephys_streamer import OpenEphysStreamer
 from ..model.background_worker import BackgroundWorker
 from ..model.stages.stage import Stage
 from ..model.stages.salinebath_demodata_stage import SalineBathDemoDataStage
-from ..model.stages.pcms_stages import Stage0aFWaveLatency, Stage0bMEPLatency, PCMSConditioningStage
+from ..model.stages.pcms_stages import Stage0aFWaveLatency, Stage0bMEPLatency, PCMSConditioningStage #, SalineBathDemoDataStage, 
 
 # from ..model.stages.emg_characterization_stage import EmgCharacterizationStage
 # from ..model.stages.mh_recruitment_curve_stage import MhRecruitmentCurveStage
@@ -64,11 +64,40 @@ class MainWindow(QMainWindow):
         self._is_session_running: bool = False
         self._is_session_paused: bool = False
 
+        # STAGES -  FROM '..MODEL/STAGE/PSCMS_Stage' File
         # Initialize a list of stages
         self._stages: list[Stage] = []
 
         salinebath_demodata_stage: SalineBathDemoDataStage = SalineBathDemoDataStage()
         self._stages.append(salinebath_demodata_stage)
+
+        stage_0a = Stage0aFWaveLatency()
+        self._stages.append(stage_0a)
+
+        stage_0b = Stage0bMEPLatency()
+        self._stages.append(stage_0b)
+
+        pcms_stage_1 = PCMSConditioningStage(
+            name="Stage 1: PCMS Conditioning",
+            description="15 min PCMS, 5s interval, Stim #0 and #1",
+            interval_sec=5,
+            duration_min=15,
+            stim_indices=[0, 1]
+        )
+        self._stages.append(pcms_stage_1)
+
+        pcms_stage_2 = PCMSConditioningStage(
+            name="Stage 2: VNS-PCMS Conditioning",
+            description="15 min PCMS with vagus, 5s interval, Stim #0 and #1",
+            interval_sec=5,
+            duration_min=15,
+            stim_indices=[0, 1]
+        )
+        self._stages.append(pcms_stage_2)
+
+
+
+
 
         # Initialize the "selected stage"
         self._selected_stage: Stage = self._stages[0]
