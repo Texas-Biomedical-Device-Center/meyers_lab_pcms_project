@@ -4,15 +4,62 @@ import numpy as np
 import json
 import uuid
 import time
+import math
 from typing import Tuple
 
-class OpenEphysStreamer (object):
+from dataclasses import dataclass, field
 
-    #region Constants
+from .emg_data_filter import EmgDataFilter
 
-    CHANNEL_SHOWN: int = 0
+#region Constants
+
+CHANNEL_SHOWN: int = 0
+OPEN_EPHYS_EXPECTED_CHANNEL_COUNT: int = 2
+
+#endregion
+
+@dataclass
+class OpenEphysDataBlock:
+
+    timestamp: int = 0
+    timestamp_received_millis: int = 0
+    channel_index: int = 0
+    channel_name: str = ""
+    stream_name: str = ""
+    num_samples: int = 0
+    sample_id: int = 0
+    sample_rate: float = 0
+    data: np.ndarray = field(default_factory=lambda: np.array([], dtype=np.float32))
+
+@dataclass
+class OpenEphysDataFrame:
+    timestamp: int = 0
+    sample_id: int = 0
+    channel_data_blocks: list[OpenEphysDataBlock] = field(default_factory=lambda: [])
+    timestamp_emitted: int = 0
+
+    #The following data members are CALCULATED, and thus are NOT initialized with data upon
+    #construction of the object
+    diff_data_block: np.ndarray = field(default_factory=lambda: np.array([], dtype=np.float32))
+    filtered_data_block: np.ndarray = field(default_factory=lambda: np.array([], dtype=np.float32))
+    abs_data_block: np.ndarray = field(default_factory=lambda: np.array([], dtype=np.float32))
+
+    #region Public methods
+
+    def calculate_fields (self) -> None:
+        if (len(self.channel_data_blocks) >= 2):
+            #Do the differential subtraction
+            self.diff_data_block = self.channel_data_blocks[1].data - self.channel_data_blocks[0].data
+
+            #Now filter the data
+            self.filtered_data_block = EmgDataFilter.filter(self.diff_data_block)
+
+            #Now take the absolute value of the data
+            self.abs_data_block = np.abs(self.filtered_data_block)
 
     #endregion
+
+class OpenEphysStreamer (object):
 
     #region Constructor
 
@@ -104,7 +151,7 @@ class OpenEphysStreamer (object):
             self.poller.register(self.data_socket, zmq.POLLIN)
             self.poller.register(self.event_socket, zmq.POLLIN)
 
-    def callback(self) -> Tuple[np.ndarray, float]:
+    def callback(self) -> OpenEphysDataBlock:
         #Check to see if more than 2 seconds has passed since the last "heartbeat" message
         if (time.time() - self.last_heartbeat_time) > 2.:
             #Make sure we aren't currently waiting on a reply from a prior heartbeat message
@@ -132,7 +179,7 @@ class OpenEphysStreamer (object):
         #Get the sockets
         socks = dict(self.poller.poll(1))
         if not socks:
-            return (None, None)
+            return None
 
         #Get the data socket
         if self.data_socket in socks:
@@ -140,7 +187,7 @@ class OpenEphysStreamer (object):
             try:
                 message = self.data_socket.recv_multipart(zmq.NOBLOCK)
             except zmq.ZMQError as err:
-                return (None, None)
+                return None
 
             #Check to see if we have a message that was received
             if message:
@@ -167,9 +214,13 @@ class OpenEphysStreamer (object):
                 #Check to see if the header type is "data"
                 if header['type'] == 'data':
                     c = header['content']
+                    timestamp = header['timestamp']
                     num_samples = c['num_samples']
                     channel_num = c['channel_num']
+                    sample_id = c['sample_num']
                     sample_rate = c['sample_rate']
+                    stream_name = c['stream']
+                    channel_name = c['channel_name']
 
                     #Check which channel the data is coming from
                     if channel_num == OpenEphysStreamer.CHANNEL_SHOWN:
@@ -180,8 +231,15 @@ class OpenEphysStreamer (object):
 
                             #If there were samples in the data
                             if num_samples > 0:
+                                #Calculate a millisecond timestamp for when our application received this data
+                                ts_received: int = int(math.floor(time.time() * 1000))
+
+                                #Package the received data into a structure that we will return to the caller
+                                received_data: OpenEphysDataBlock = OpenEphysDataBlock(
+                                    timestamp, ts_received, channel_num, channel_name, stream_name, num_samples, sample_id, sample_rate, n_arr)
+
                                 #Update the UI
-                                return (n_arr, sample_rate)
+                                return received_data
 
                         except IndexError as e:
                             #print(e)
@@ -212,7 +270,7 @@ class OpenEphysStreamer (object):
                     raise ValueError("message type unknown")
             else:
                 #print("got not data")
-                return (None, None)
+                return None
         elif self.event_socket in socks and self.socket_waits_reply:
             #If we are waiting for a reply on the event socket...
 
@@ -225,6 +283,6 @@ class OpenEphysStreamer (object):
             if self.socket_waits_reply:
                 self.socket_waits_reply = False
 
-        return (None, None)
+        return None
 
     #endregion
