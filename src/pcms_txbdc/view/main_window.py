@@ -12,12 +12,13 @@ from PySide6.QtWidgets import (
     QGridLayout,
     QPlainTextEdit,
     QMessageBox,
-    QSpacerItem
+    QMenu,
+    QToolButton
 )
 
-from PySide6.QtGui import QFont
+from PySide6.QtGui import QFont, QAction
 from PySide6.QtCore import QThreadPool
-from PySide6 import QtCore
+from PySide6 import QtCore, QtWidgets
 from PySide6.QtCore import Qt
 import pyqtgraph as pg
 import numpy as np
@@ -29,24 +30,29 @@ import time
 
 from typing import Tuple
 
-from ..model.open_ephys_streamer import OpenEphysStreamer
 from ..model.background_worker import BackgroundWorker
 from ..model.stages.stage import Stage
 from ..model.stages.salinebath_demodata_stage import SalineBathDemoDataStage
 from ..model.stages.pcms_stages import Stage0aFWaveLatency, Stage0bMEPLatency, PCMSConditioningStage #, SalineBathDemoDataStage, 
 
-# from ..model.stages.emg_characterization_stage import EmgCharacterizationStage
-# from ..model.stages.mh_recruitment_curve_stage import MhRecruitmentCurveStage
 from ..model.session_message import SessionMessage
 from ..model.application_configuration import ApplicationConfiguration
 
-import serial
+from ..model.open_ephys_streamer import OpenEphysStreamer
+from ..model.open_ephys_streamer import OpenEphysDataBlock, OpenEphysDataFrame
+from ..model.emg_data_filter import EmgDataFilter
 
 class MainWindow(QMainWindow):
     """
     Main application window for PCMS Conditioning with input fields for experimental variables
     and plots to visualize trial and live EMG data.
     """
+
+    #region Class members / constants
+
+    EMG_PLOTTING_SAMPLE_COUNT: int = 5000
+
+    #endregion
 
     #region Constructor
 
@@ -57,8 +63,14 @@ class MainWindow(QMainWindow):
         self._msg_text_list = []  
         
         # Initialize a variable to hold EMG signal data for plotting
-        self._emg_signal_data_max_length = 50000
-        self._emg_signal_data = np.zeros(self._emg_signal_data_max_length)
+        self._emg_signal_data_raw = np.zeros(MainWindow.EMG_PLOTTING_SAMPLE_COUNT)
+        self._emg_signal_data_filtered = np.zeros(MainWindow.EMG_PLOTTING_SAMPLE_COUNT)
+        self._emg_signal_data_abs = np.zeros(MainWindow.EMG_PLOTTING_SAMPLE_COUNT)
+
+        # Initialize a few flags used for plotting live emg data
+        # Index 0 = plot raw diff'd data, Index 1 = plot filtered data, Index 2 = plot abs'd data
+        self._live_emg_data_plot_flags: list[bool] = [True, False, False]
+        self._live_emg_data_plot_legend_names: list[str] = ["Raw EMG data", "Filtered EMG data", "Absoluted-value EMG data"]
 
         # Initialize a flag to track whether a session is currently running
         self._is_session_running: bool = False
@@ -253,6 +265,23 @@ class MainWindow(QMainWindow):
         live_emg_label.setFont(self._bold_font)
         live_emg_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
 
+        self.live_emg_signal_tool_button: QToolButton = QToolButton()
+        self.live_emg_signal_tool_button.setText("Choose live EMG plots")
+
+        tool_button_size_policy: QSizePolicy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        self.live_emg_signal_tool_button.setSizePolicy(tool_button_size_policy)
+
+        self.live_emg_signal_tool_menu: QMenu = QMenu()
+        for i in range(0, len(self._live_emg_data_plot_legend_names)):
+            action: QAction = self.live_emg_signal_tool_menu.addAction(self._live_emg_data_plot_legend_names[i])
+            action.setCheckable(True)
+            action.setChecked(self._live_emg_data_plot_flags[i])
+            
+            action.toggled.connect(self._handle_live_emg_data_plot_selection_changed)
+        
+        self.live_emg_signal_tool_button.setMenu(self.live_emg_signal_tool_menu)
+        self.live_emg_signal_tool_button.setPopupMode(QtWidgets.QToolButton.ToolButtonPopupMode.InstantPopup)
+
         #This plot widget will show the session history
         self._peri_stim_plot_widget = pg.PlotWidget()
         self._peri_stim_plot_widget.setBackground('w')
@@ -265,7 +294,7 @@ class MainWindow(QMainWindow):
         # middle_grid.addWidget(history_plot_label, 0, 0)
         middle_grid.addWidget(peri_stim_label, 0, 0)
         # middle_grid.addWidget(self._most_recent_trial_plot_selection_box, 0, 1)
-        middle_grid.addWidget(live_emg_label, 0, 1)
+        middle_grid.addWidget(self.live_emg_signal_tool_button, 0, 1)
 
         middle_grid.addWidget(self._peri_stim_plot_widget, 1, 0)
         # middle_grid.addWidget(self._previous_trial_plot_widget, 1, 1)
@@ -484,40 +513,6 @@ class MainWindow(QMainWindow):
 
     #region Overrides
 
-    def _send_callback(self) -> None:
-        """
-        Handler for send button clicks from any of the input rows.
-        """
-        # Get the sender (the button or text entry that triggered the callback)
-        sender = self.sender()
-        
-        # Find which text entry was used
-        text_entry = None
-        stim_number = None
-        if isinstance(sender, QLineEdit):
-            text_entry = sender
-            # Find which Stim Jim this is
-            if text_entry in self._msg_text_list:
-                stim_number = self._msg_text_list.index(text_entry) + 1
-        elif isinstance(sender, QPushButton):
-            # Get the text entry associated with this button's row
-            # (it will be the previous widget in the layout)
-            layout = sender.parent().layout()
-            for i in range(layout.count()):
-                if isinstance(layout.itemAt(i).widget(), QLineEdit):
-                    text_entry = layout.itemAt(i).widget()
-                    stim_number = self._msg_text_list.index(i) + 1
-                    break
-
-        if text_entry and text_entry.text().strip():
-            # Add to session messages
-            message = SessionMessage(f"Message to stim jim{stim_number}: {text_entry.text()}")
-            self._session_messages.append(message)
-            self._update_session_messages()
-            
-            # Clear the text entry
-            text_entry.clear()
-
     def closeEvent(self, event):
         '''
         This method is called when the user attempts to close the application window.
@@ -591,20 +586,6 @@ class MainWindow(QMainWindow):
         else:
             self._selected_stage = None
         
-        #Re-populate the session plot selection combo box and the trial plot selection combo box
-        # if (self._selected_stage is not None):
-        #     items: list[str] = self._selected_stage.get_session_plot_options()
-
-        #     self._session_history_plot_selection_box.clear()
-        #     for i in items:
-        #         self._session_history_plot_selection_box.addItem(i)
-
-        #     items: list[str] = self._selected_stage.get_trial_plot_options()
-
-        #     self._most_recent_trial_plot_selection_box.clear()
-        #     for i in items:
-        #         self._most_recent_trial_plot_selection_box.addItem(i)
-
         # Check to see if the start/stop button should be enabled
         if (len(self._subject_entry.text()) > 0) and (self._selected_stage is not None):
             #If so...
@@ -634,16 +615,27 @@ class MainWindow(QMainWindow):
         else:
             OpenEphysStreamer.CHANNEL_SHOWN = 0
 
-    def _on_data_received (self, received: Tuple[np.ndarray, float]) -> None:
+    def _on_data_received (self, received: OpenEphysDataFrame) -> None:
+        #Initialize the filter if necessary
+        if (EmgDataFilter.sos is None):
+            EmgDataFilter.initialize_filter()
+
+        #Calculate the uninitialized fields in the dataframe
+        received.calculate_fields()
+
         #Grab the data was sent from Open Ephys
-        data = received[0]
-        sample_rate = received[1]
+        data = received.diff_data_block
+        sample_rate = received.channel_data_blocks[0].sample_rate
 
         #Append the new data to the live EMG signal array, and remove old data
-        self._emg_signal_data = np.concatenate([self._emg_signal_data, data])
-        if (len(self._emg_signal_data) > self._emg_signal_data_max_length):
-            elements_to_remove = len(self._emg_signal_data) - self._emg_signal_data_max_length
-            self._emg_signal_data = self._emg_signal_data[elements_to_remove:]
+        self._emg_signal_data_raw = np.concatenate([self._emg_signal_data_raw, received.diff_data_block])
+        self._emg_signal_data_filtered = np.concatenate([self._emg_signal_data_filtered, received.filtered_data_block])
+        self._emg_signal_data_abs = np.concatenate([self._emg_signal_data_abs, received.abs_data_block])
+        if (len(self._emg_signal_data_raw) > MainWindow.EMG_PLOTTING_SAMPLE_COUNT):
+            elements_to_remove = len(self._emg_signal_data_raw) - MainWindow.EMG_PLOTTING_SAMPLE_COUNT
+            self._emg_signal_data_raw = self._emg_signal_data_raw[elements_to_remove:]
+            self._emg_signal_data_filtered = self._emg_signal_data_filtered[elements_to_remove:]
+            self._emg_signal_data_abs = self._emg_signal_data_abs[elements_to_remove:]
         
         #For debugging purposes, keep a count of how many frames per second we are achieving
         self._frame_count += 1
@@ -668,7 +660,7 @@ class MainWindow(QMainWindow):
         #Check to see if a session is actively running
         if (self._is_session_running) and (not (self._is_session_paused)):
             #If so, process the data through the selected stage
-            self._selected_stage.process(data)
+            self._selected_stage.process(received)
 
         #Plot the live emg data
         self._plot_live_emg()
@@ -851,12 +843,6 @@ class MainWindow(QMainWindow):
             self._stage_selection_box.setEnabled(False)
             self._stage_selection_box.setStyleSheet("QComboBox {color: #808080; background-color: #F0F0F0;}")
 
-            # #Enable the plot selection combo boxes
-            # self._session_history_plot_selection_box.setEnabled(True)
-            # self._session_history_plot_selection_box.setStyleSheet("QComboBox {color: #000000; background-color: #FFFFFF;}")
-            # self._most_recent_trial_plot_selection_box.setEnabled(True)
-            # self._most_recent_trial_plot_selection_box.setStyleSheet("QComboBox {color: #000000; background-color: #FFFFFF;}")
-
             #Enable the pause and feed buttons
             self._pause_button.setEnabled(True)
             self._feed_button.setEnabled(True)
@@ -906,12 +892,6 @@ class MainWindow(QMainWindow):
             self._stage_selection_box.setEnabled(True)
             self._stage_selection_box.setStyleSheet("QComboBox {color: #000000; background-color: #FFFFFF;}")
 
-            #Disable the plot selection combo boxes
-            # self._session_history_plot_selection_box.setEnabled(False)
-            # self._session_history_plot_selection_box.setStyleSheet("QComboBox {color: #808080; background-color: #F0F0F0;}")
-            # self._most_recent_trial_plot_selection_box.setEnabled(False)
-            # self._most_recent_trial_plot_selection_box.setStyleSheet("QComboBox {color: #808080; background-color: #F0F0F0;}")
-    
     def _on_pause_button_clicked (self) -> None:
         #Set the "paused" flag
         self._is_session_paused = not self._is_session_paused
@@ -957,15 +937,33 @@ class MainWindow(QMainWindow):
             #Pass the text to the stage
             self._selected_stage.input(user_input)
 
-    # def _on_session_history_plot_selection_index_changed (self) -> None:
-    #     if (self._is_session_running):
-    #         current_index = self._session_history_plot_selection_box.currentIndex()
-    #         self._selected_stage.session_plot_index = current_index
+        pass
 
-    # def _on_most_recent_trial_plot_selection_index_changed (self) -> None:
-    #     if (self._is_session_running):
-    #         current_index = self._most_recent_trial_plot_selection_box.currentIndex()
-    #         self._selected_stage.trial_plot_index = current_index
+    def _handle_live_emg_data_plot_selection_changed (self, checked) -> None:
+
+        #Get the action that triggered the signal
+        action: QAction = self.sender()
+        if (action is not None):
+            #Get the text of the action
+            txt: str = action.text()
+
+            #See which plot item the action's text matches
+            for i in range(0, len(self._live_emg_data_plot_legend_names)):
+                if (txt == self._live_emg_data_plot_legend_names[i]):
+                    #Toggle the flag variable for this plot item
+                    self._live_emg_data_plot_flags[i] = checked
+
+                    if (i == 0):
+                        self._live_emg_line_object_raw.setVisible(checked)
+                    elif (i == 1):
+                        self._live_emg_line_object_filtered.setVisible(checked)
+                    elif (i == 2):
+                        self._live_emg_line_object_abs.setVisible(checked)
+
+                    #Break out of the loop early (no need to continue since we found the correct item already)
+                    break
+
+        pass
 
     #endregion
 
@@ -995,11 +993,20 @@ class MainWindow(QMainWindow):
         #Style the plot
         self._live_emg_graph_widget.setBackground('w')
         self._live_emg_graph_widget.setYRange(-250, 250, padding = 0)
+        self._live_emg_graph_widget.addLegend(offset=(0, 0))
 
         #Create the line object that will be used for updating the data
-        pen = pg.mkPen(color = (0, 0, 255), width = 2)
-        self._live_emg_x_data = list(range(0, len(self._emg_signal_data)))
-        self._live_emg_line_object = self._live_emg_graph_widget.plot(self._live_emg_x_data, self._emg_signal_data, pen = pen)
+        pen_0 = pg.mkPen(color = (0, 0, 255), width = 2)
+        pen_1 = pg.mkPen(color = (255, 0, 0), width = 2)
+        pen_2 = pg.mkPen(color = (0, 255, 0), width = 2)
+        self._live_emg_x_data = list(range(0, len(self._emg_signal_data_raw)))
+        self._live_emg_line_object_raw = self._live_emg_graph_widget.plot(self._live_emg_x_data, self._emg_signal_data_raw, pen = pen_0, name=self._live_emg_data_plot_legend_names[0])
+        self._live_emg_line_object_filtered = self._live_emg_graph_widget.plot(self._live_emg_x_data, self._emg_signal_data_filtered, pen = pen_1, name=self._live_emg_data_plot_legend_names[1])
+        self._live_emg_line_object_abs = self._live_emg_graph_widget.plot(self._live_emg_x_data, self._emg_signal_data_abs, pen = pen_2, name=self._live_emg_data_plot_legend_names[2])
+
+        self._live_emg_line_object_raw.setVisible(self._live_emg_data_plot_flags[0])
+        self._live_emg_line_object_filtered.setVisible(self._live_emg_data_plot_flags[1])
+        self._live_emg_line_object_abs.setVisible(self._live_emg_data_plot_flags[2])
 
     def _plot_live_emg(self) -> None:
         """
@@ -1008,8 +1015,9 @@ class MainWindow(QMainWindow):
         Parameters:
             figure (Figure): Matplotlib Figure object for the live EMG plot.
          """
-        self._live_emg_line_object.setData(self._live_emg_x_data, self._emg_signal_data)
-        
+        self._live_emg_line_object_raw.setData(self._live_emg_x_data, self._emg_signal_data_raw)
+        self._live_emg_line_object_filtered.setData(self._live_emg_x_data, self._emg_signal_data_filtered)
+        self._live_emg_line_object_abs.setData(self._live_emg_x_data, self._emg_signal_data_abs)
 
 
 

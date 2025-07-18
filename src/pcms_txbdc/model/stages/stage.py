@@ -2,6 +2,8 @@ from PySide6.QtCore import Signal, QObject
 import pyqtgraph as pg
 import numpy as np
 
+from ..open_ephys_streamer import OpenEphysDataFrame
+
 class StageSignals (QObject):
 
     #region Signals
@@ -49,16 +51,8 @@ class Stage (object):
         #Define the stage type
         self.stage_type: int = Stage.STAGE_TYPE_SALINE_DEMO_DATA
 
-        # #Define null values for the session and trial widgets
-        # self._session_widget: pg.PlotWidget = None
-        # self._trial_widget: pg.PlotWidget = None
-
         #Set the subject name
         self._subject_id: str = ""
-
-        # #Set the trial plot index and session plot index
-        # self._trial_plot_index: int = 0
-        # self._session_plot_index: int = 0
 
     #endregion
 
@@ -101,7 +95,7 @@ class Stage (object):
 
         return (True, "")
 
-    def process (self, data: np.ndarray) -> None:
+    def process (self, data_frame: OpenEphysDataFrame) -> None:
 
         #This should be implemented by each stage
 
