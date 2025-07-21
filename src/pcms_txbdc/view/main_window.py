@@ -291,13 +291,11 @@ class MainWindow(QMainWindow):
         self._initialize_live_emg_plot()
 
         # Add both plots to the middle layout
-        # middle_grid.addWidget(history_plot_label, 0, 0)
         middle_grid.addWidget(peri_stim_label, 0, 0)
-        # middle_grid.addWidget(self._most_recent_trial_plot_selection_box, 0, 1)
-        middle_grid.addWidget(self.live_emg_signal_tool_button, 0, 1)
+        middle_grid.addWidget(live_emg_label, 0, 1)
+        # middle_grid.addWidget(self.live_emg_signal_tool_button, 0, 1)
 
         middle_grid.addWidget(self._peri_stim_plot_widget, 1, 0)
-        # middle_grid.addWidget(self._previous_trial_plot_widget, 1, 1)
         middle_grid.addWidget(self._live_emg_graph_widget, 1, 1)
 
         #Add this section to the window's layout

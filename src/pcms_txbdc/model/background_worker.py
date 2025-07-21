@@ -86,4 +86,3 @@ class BackgroundWorker (QRunnable):
         return
 
     #endregion
-
