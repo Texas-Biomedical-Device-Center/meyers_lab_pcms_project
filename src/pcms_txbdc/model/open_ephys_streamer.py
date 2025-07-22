@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 from .emg_data_filter import EmgDataFilter
 
 OPEN_EPHYS_EXPECTED_CHANNEL_COUNT: int = 2
+CHANNEL_SHOWN: int = 0
 
 @dataclass
 class OpenEphysDataBlock:
@@ -19,7 +20,6 @@ class OpenEphysDataBlock:
     timestamp: int = 0
     timestamp_received_millis: int = 0
     channel_index: int = 0
-    channel_name: str = ""
     stream_name: str = ""
     num_samples: int = 0
     sample_id: int = 0
@@ -215,35 +215,37 @@ class OpenEphysStreamer (object):
                     sample_id = c['sample_num']
                     sample_rate = c['sample_rate']
                     stream_name = c['stream']
-                    channel_name = c['channel_name']
 
-                    #Get the data from the message
-                    try:
-                        n_arr = np.frombuffer(message[2], dtype=np.float32)
-                        n_arr = np.reshape(n_arr, num_samples)
+                    # Check which channel the data is coming from
+                    if channel_num == OpenEphysStreamer.CHANNEL_SHOWN:
 
-                        #If there were samples in the data
-                        if num_samples > 0:
+                        #Get the data from the message
+                        try:
+                            n_arr = np.frombuffer(message[2], dtype=np.float32)
+                            n_arr = np.reshape(n_arr, num_samples)
 
-                            #Calculate a millisecond timestamp for when our application received this data
-                            ts_received: int = int(math.floor(time.time() * 1000))
+                            #If there were samples in the data
+                            if num_samples > 0:
 
-                            #Package the received data into a structure that we will return to the caller
-                            received_data: OpenEphysDataBlock = OpenEphysDataBlock(
-                                timestamp, ts_received, channel_num, channel_name, stream_name, num_samples, sample_id, sample_rate, n_arr)
+                                #Calculate a millisecond timestamp for when our application received this data
+                                ts_received: int = int(math.floor(time.time() * 1000))
 
-                            #Update the UI
-                            return received_data
+                                #Package the received data into a structure that we will return to the caller
+                                received_data: OpenEphysDataBlock = OpenEphysDataBlock(
+                                    timestamp, ts_received, channel_num, stream_name, num_samples, sample_id, sample_rate, n_arr)
 
-                    except IndexError as e:
-                        #print(e)
-                        #print(header)
-                        #print(message[1])
-                        #if len(message) > 2:
-                        #    print(len(message[2]))
-                        #else:
-                        #    print("only one frame???")
-                        pass
+                                #Update the UI
+                                return received_data
+
+                        except IndexError as e:
+                            #print(e)
+                            #print(header)
+                            #print(message[1])
+                            #if len(message) > 2:
+                            #    print(len(message[2]))
+                            #else:
+                            #    print("only one frame???")
+                            pass
 
                 elif header['type'] == 'event':
 

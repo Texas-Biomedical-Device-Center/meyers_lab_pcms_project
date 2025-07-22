@@ -301,7 +301,6 @@ class MainWindow(QMainWindow):
         #Add this section to the window's layout
         self._layout.addLayout(middle_grid, 1, 0)
         
-
     def _create_bottom_section(self) -> None:
         """
         Creates the bottom section with a message box and buttons for the user to start/stop the session
