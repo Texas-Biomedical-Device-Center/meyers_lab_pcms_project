@@ -17,18 +17,6 @@ class ApplicationConfiguration:
     # AM Systems 4100 stimulator object
     stimulator: list[AmSystems4100] = []
 
-    # Multiple stimjim configuration
-    """
-    #StimJim serial connection
-    stimjim_serial: list[serial.Serial] = []
-
-    #StimJim object
-    stimjim: list[StimJim] = []
-
-    # Last parameters sent to StimJim added for ease of tracking
-    last_stimjim_command: list[str] = []
-    """
-
     #region Methods
 
     @staticmethod
@@ -48,20 +36,6 @@ class ApplicationConfiguration:
         new_am4100 = AmSystems4100(connection_info)
         ApplicationConfiguration.stimulator.append(new_am4100)
 
-    """
-    def connect_to_stimjim (port: ListPortInfo) -> None:
-        new_serial = serial.Serial(port.device, baudrate=STIMJIM_SERIAL_BAUDRATE)
-        new_stimjim = StimJim(new_serial)
-        
-        ApplicationConfiguration.stimjim_serial.append(new_serial)
-        ApplicationConfiguration.stimjim.append(new_stimjim)
-        ApplicationConfiguration.last_stimjim_command.append("")
-
-        # Original code
-        # ApplicationConfiguration.stimjim_serial = serial.Serial(port, baudrate = STIMJIM_SERIAL_BAUDRATE)
-        # ApplicationConfiguration.stimjim = StimJim(ApplicationConfiguration.stimjim_serial)
-    """
-
     @staticmethod
     def disconnect_from_am_systems_4100 () -> None:
         if (ApplicationConfiguration.stimulator is not None):
@@ -71,28 +45,6 @@ class ApplicationConfiguration:
                 ApplicationConfiguration.stimulator = None
             except:
                 pass
-
-    """
-    def disconnect_from_stimjim () -> None:     # change to take input index to disconnect individual stimjims
-        #if 0 <= index < len(ApplicationConfiguration.stimjim_serial):
-        if (ApplicationConfiguration.stimjim_serial is not None):
-            for serial_port in ApplicationConfiguration.stimjim_serial:
-                #serial_port = ApplicationConfiguration.stimjim_serial[index]
-                if serial_port.is_open:
-                    serial_port.close()
-                
-            # Remove from all lists
-            ApplicationConfiguration.stimjim_serial = None
-            ApplicationConfiguration.stimjim = None
-            ApplicationConfiguration.last_stimjim_command = None
-
-        # Original code
-        # if (ApplicationConfiguration.stimjim_serial is not None):
-        #     if (ApplicationConfiguration.stimjim_serial.is_open):
-        #         ApplicationConfiguration.stimjim_serial.close()
-        
-        # ApplicationConfiguration.stimjim = None
-        """
 
     @staticmethod
     def TEST_set_monophasic_stimulus_pulse_parameters (index: int, amplitude_ma: float) -> None:
@@ -154,13 +106,6 @@ class ApplicationConfiguration:
             print("index out of range")
 
         pass
-        # Original Code
-        """
-        if (ApplicationConfiguration.stimjim is not None):
-            ApplicationConfiguration.stimjim.pulse_trains[0] = pulse_train
-            ApplicationConfiguration.stimjim.send_command(stimjim_cmd_str)
-
-        """
 
     @staticmethod
     def set_biphasic_stimulus_pulse_parameters (index: int, amplitude_ma: float) -> None:

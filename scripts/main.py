@@ -36,8 +36,8 @@ def main () -> None:
         return
 
     #Connect to the AM Systems Model 4100
-    for port in possible_ports:
-        ApplicationConfiguration.connect_to_am_systems_4100(port.device)
+    if (len(possible_ports) > 0):
+        ApplicationConfiguration.connect_to_am_systems_4100(possible_ports[0].device)
 
     #Connect to the StimJim
     # for port in possible_ports:
